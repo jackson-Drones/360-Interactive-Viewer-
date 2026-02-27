@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 Video Viewer - Insta360</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 50px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            font-size: 18px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .control-btn.active {
+            background: #4a90d9;
+        }
+
+        #progress-container {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: #4a90d9;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        #time-display {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        #file-input-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 200;
+        }
+
+        #file-input-container.hidden {
+            display: none;
+        }
+
+        #drop-zone {
+            width: 400px;
+            height: 250px;
+            border: 3px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #drop-zone:hover, #drop-zone.dragover {
+            border-color: #4a90d9;
+            background: rgba(74, 144, 217, 0.1);
+        }
+
+        #drop-zone svg {
+            width: 60px;
+            height: 60px;
+            opacity: 0.6;
+        }
+
+        #drop-zone p {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        #drop-zone small {
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        #info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        #info-panel h3 {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #4a90d9;
+        }
+
+        #info-panel p {
+            margin: 4px 0;
+            opacity: 0.8;
+        }
+
+        #zoom-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zoom-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .zoom-btn:active {
+            background: #4a90d9;
+        }
+
+        #fov-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #fov-slider {
+            width: 100px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #fov-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4a90d9;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        #fov-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        #fov-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4a90d9;
+            cursor: pointer;
+            border: none;
+        }
+
+        #fov-value {
+            min-width: 28px;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 300;
+            display: none;
+        }
+
+        #loading.visible {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #4a90d9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #help-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            max-width: 200px;
+        }
+
+        #help-panel h4 {
+            margin-bottom: 10px;
+            color: #4a90d9;
+        }
+
+        #help-panel ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #help-panel li {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+
+        #help-panel kbd {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <div id="file-input-container">
+        <div id="drop-zone">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            <p>Drop your 360 video here</p>
+            <small>Supports equirectangular MP4 files</small>
+            <br><br>
+            <small style="opacity: 0.6; font-size: 11px;">
+                FFmpeg conversion for Insta360 (downward-mounted):<br>
+                <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; font-size: 10px;">
+                v360=dfisheye:e:ih_fov=194:iv_fov=194:roll=180
+                </code>
+            </small>
+        </div>
+        <input type="file" id="file-input" accept="video/*">
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Loading video...</p>
+    </div>
+
+    <div id="info-panel" style="display: none;">
+        <h3>Video Info</h3>
+        <p id="video-name">-</p>
+        <p id="video-resolution">-</p>
+    </div>
+
+    <div id="help-panel">
+        <h4>Controls</h4>
+        <ul>
+            <li><kbd>Drag</kbd> Look up/down</li>
+            <li><kbd>Scroll</kbd> Zoom in/out</li>
+            <li><kbd>Space</kbd> Play/Pause</li>
+            <li><kbd>F</kbd> Fullscreen</li>
+            <li><kbd>R</kbd> Reset view</li>
+        </ul>
+    </div>
+
+    <div id="controls" style="display: none;">
+        <button class="control-btn" id="play-btn" title="Play/Pause">
+            <span id="play-icon">&#9658;</span>
+        </button>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <span id="time-display">0:00 / 0:00</span>
+        <button class="control-btn" id="fullscreen-btn" title="Fullscreen">
+            <span>&#x26F6;</span>
+        </button>
+        <button class="control-btn" id="reset-btn" title="Reset View">
+            <span>&#x21BA;</span>
+        </button>
+    </div>
+
+    <div id="zoom-controls" style="display: none;">
+        <button class="zoom-btn" id="zoom-out-btn" title="Zoom Out (wider FOV)">-</button>
+        <div id="fov-slider-container">
+            <input type="range" id="fov-slider" min="30" max="110" value="75">
+            <span id="fov-value">75</span>&deg;
+        </div>
+        <button class="zoom-btn" id="zoom-in-btn" title="Zoom In (narrower FOV)">+</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // State
+        let camera, scene, renderer;
+        let video, videoTexture, sphere;
+        let isUserInteracting = false;
+        let lon = 0, lat = 0;
+        let onPointerDownX = 0, onPointerDownY = 0;
+        let onPointerDownLon = 0, onPointerDownLat = 0;
+        let fov = 75;
+        const minFov = 30, maxFov = 110;
+
+        // DOM Elements
+        const container = document.getElementById('container');
+        const fileInputContainer = document.getElementById('file-input-container');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const controls = document.getElementById('controls');
+        const playBtn = document.getElementById('play-btn');
+        const playIcon = document.getElementById('play-icon');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const timeDisplay = document.getElementById('time-display');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const infoPanel = document.getElementById('info-panel');
+        const videoName = document.getElementById('video-name');
+        const videoResolution = document.getElementById('video-resolution');
+        const zoomControls = document.getElementById('zoom-controls');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const fovSlider = document.getElementById('fov-slider');
+        const fovValue = document.getElementById('fov-value');
+        const loading = document.getElementById('loading');
+        const helpPanel = document.getElementById('help-panel');
+
+        // Initialize Three.js scene
+        function initScene() {
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 0.1);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // Create sphere geometry for 360 video
+            const geometry = new THREE.SphereGeometry(500, 60, 40);
+            geometry.scale(-1, 1, 1); // Invert for inside view
+
+            // Placeholder material
+            const material = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
+            sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            // Event listeners
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            renderer.domElement.addEventListener('pointerup', onPointerUp);
+            renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', onKeyDown);
+
+            animate();
+        }
+
+        // Load video file
+        function loadVideo(file) {
+            loading.classList.add('visible');
+            fileInputContainer.classList.add('hidden');
+            helpPanel.style.display = 'none';
+
+            const url = URL.createObjectURL(file);
+
+            video = document.createElement('video');
+            video.src = url;
+            video.crossOrigin = 'anonymous';
+            video.loop = true;
+            video.muted = false;
+            video.playsInline = true;
+
+            video.addEventListener('loadedmetadata', () => {
+                loading.classList.remove('visible');
+
+                // Update info panel
+                videoName.textContent = file.name;
+                videoResolution.textContent = `${video.videoWidth} x ${video.videoHeight}`;
+                infoPanel.style.display = 'block';
+                controls.style.display = 'flex';
+                zoomControls.style.display = 'flex';
+
+                // Create video texture
+                videoTexture = new THREE.VideoTexture(video);
+                videoTexture.colorSpace = THREE.SRGBColorSpace;
+                videoTexture.minFilter = THREE.LinearFilter;
+                videoTexture.magFilter = THREE.LinearFilter;
+
+                // Update sphere material
+                sphere.material = new THREE.MeshBasicMaterial({ map: videoTexture });
+
+                // Start playback
+                video.play();
+                updatePlayButton();
+            });
+
+            video.addEventListener('timeupdate', updateProgress);
+            video.addEventListener('play', updatePlayButton);
+            video.addEventListener('pause', updatePlayButton);
+
+            video.addEventListener('error', (e) => {
+                loading.classList.remove('visible');
+                alert('Error loading video. Make sure it\'s an equirectangular 360 video.');
+                fileInputContainer.classList.remove('hidden');
+                helpPanel.style.display = 'block';
+            });
+        }
+
+        // Pointer handlers
+        function onPointerDown(event) {
+            isUserInteracting = true;
+            onPointerDownX = event.clientX;
+            onPointerDownY = event.clientY;
+            onPointerDownLon = lon;
+            onPointerDownLat = lat;
+        }
+
+        function onPointerMove(event) {
+            if (isUserInteracting) {
+                // Pitch-only control: only update latitude (vertical), ignore longitude (horizontal)
+                lat = (event.clientY - onPointerDownY) * 0.15 + onPointerDownLat;
+            }
+        }
+
+        function onPointerUp() {
+            isUserInteracting = false;
+        }
+
+        // Update FOV helper
+        function updateFov(newFov) {
+            fov = Math.max(minFov, Math.min(maxFov, newFov));
+            camera.fov = fov;
+            camera.updateProjectionMatrix();
+            fovValue.textContent = Math.round(fov);
+            fovSlider.value = fov;
+        }
+
+        // Zoom with scroll
+        function onWheel(event) {
+            event.preventDefault();
+            updateFov(fov + event.deltaY * 0.05);
+        }
+
+        // Window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Keyboard controls
+        function onKeyDown(event) {
+            switch(event.code) {
+                case 'Space':
+                    event.preventDefault();
+                    togglePlay();
+                    break;
+                case 'KeyF':
+                    toggleFullscreen();
+                    break;
+                case 'KeyR':
+                    resetView();
+                    break;
+            }
+        }
+
+        // Video controls
+        function togglePlay() {
+            if (!video) return;
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        }
+
+        function updatePlayButton() {
+            if (!video) return;
+            playIcon.innerHTML = video.paused ? '&#9658;' : '&#10074;&#10074;';
+        }
+
+        function updateProgress() {
+            if (!video) return;
+            const progress = (video.currentTime / video.duration) * 100;
+            progressBar.style.width = progress + '%';
+            timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function seekTo(event) {
+            if (!video) return;
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (event.clientX - rect.left) / rect.width;
+            video.currentTime = pos * video.duration;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function resetView() {
+            lon = 0;
+            lat = 0;
+            updateFov(75);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Clamp latitude
+            lat = Math.max(-85, Math.min(85, lat));
+
+            // Convert to radians
+            const phi = THREE.MathUtils.degToRad(90 - lat);
+            const theta = THREE.MathUtils.degToRad(lon);
+
+            // Update camera position on unit sphere
+            camera.position.x = 0.1 * Math.sin(phi) * Math.cos(theta);
+            camera.position.y = 0.1 * Math.cos(phi);
+            camera.position.z = 0.1 * Math.sin(phi) * Math.sin(theta);
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        // File handling
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('video/')) {
+                loadVideo(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                loadVideo(file);
+            }
+        });
+
+        // Control button handlers
+        playBtn.addEventListener('click', togglePlay);
+        progressContainer.addEventListener('click', seekTo);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        resetBtn.addEventListener('click', resetView);
+
+        // Zoom control handlers
+        zoomInBtn.addEventListener('click', () => updateFov(fov - 10));
+        zoomOutBtn.addEventListener('click', () => updateFov(fov + 10));
+        fovSlider.addEventListener('input', (e) => updateFov(parseFloat(e.target.value)));
+
+        // Auto-load video from URL if present
+        function autoLoadVideo(url) {
+            loading.classList.add('visible');
+            fileInputContainer.classList.add('hidden');
+            helpPanel.style.display = 'none';
+
+            video = document.createElement('video');
+            video.src = url;
+            video.crossOrigin = 'anonymous';
+            video.loop = true;
+            video.muted = false;
+            video.playsInline = true;
+
+            video.addEventListener('loadedmetadata', () => {
+                loading.classList.remove('visible');
+
+                // Update info panel
+                videoName.textContent = url.split('/').pop();
+                videoResolution.textContent = `${video.videoWidth} x ${video.videoHeight}`;
+                infoPanel.style.display = 'block';
+                controls.style.display = 'flex';
+                zoomControls.style.display = 'flex';
+
+                // Create video texture
+                videoTexture = new THREE.VideoTexture(video);
+                videoTexture.colorSpace = THREE.SRGBColorSpace;
+                videoTexture.minFilter = THREE.LinearFilter;
+                videoTexture.magFilter = THREE.LinearFilter;
+
+                // Update sphere material
+                sphere.material = new THREE.MeshBasicMaterial({ map: videoTexture });
+
+                // Start playback
+                video.play();
+                updatePlayButton();
+            });
+
+            video.addEventListener('timeupdate', updateProgress);
+            video.addEventListener('play', updatePlayButton);
+            video.addEventListener('pause', updatePlayButton);
+
+            video.addEventListener('error', (e) => {
+                loading.classList.remove('visible');
+                console.log('Video load error, showing file picker');
+                fileInputContainer.classList.remove('hidden');
+                helpPanel.style.display = 'block';
+            });
+        }
+
+        // Initialize
+        initScene();
+
+        // Check for video and auto-load (prefer 3min version)
+        const videoUrls = ['./video_360_3min.mp4', './video_360_test.mp4'];
+        const tryLoadVideo = (urls) => {
+            if (urls.length === 0) return;
+            fetch(urls[0], { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        autoLoadVideo(urls[0]);
+                    } else {
+                        tryLoadVideo(urls.slice(1));
+                    }
+                })
+                .catch(() => tryLoadVideo(urls.slice(1)));
+        };
+        tryLoadVideo(videoUrls);
+
+        // Legacy fallback code below (not used)
+        const testVideoUrl = './video_360_test.mp4';
+        const skipLegacy = true;
+        skipLegacy || fetch(testVideoUrl, { method: 'HEAD' })
+            .then(response => {
+                if (response.ok) {
+                    autoLoadVideo(testVideoUrl);
+                }
+            })
+            .catch(() => {
+                // No test video, show file picker
+            });
+    </script>
+</body>
+</html>

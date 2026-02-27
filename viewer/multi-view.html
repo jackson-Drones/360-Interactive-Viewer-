@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 Multi-View - 3 Panels</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a15;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #multi-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            margin: auto;
+            background: #0a0a15;
+        }
+
+        /* Aspect ratio modes - constrained to viewport */
+        body.aspect-16-9 #multi-container {
+            max-width: calc(100vh * 16 / 9);
+            height: 100vh;
+        }
+
+        body.aspect-21-9 #multi-container {
+            max-width: calc(100vh * 21 / 9);
+            height: 100vh;
+        }
+
+        body.aspect-32-9 #multi-container {
+            max-width: calc(100vh * 32 / 9);
+            height: 100vh;
+        }
+
+        /* Mid-range aspect ratios - between standard and pano */
+        body.aspect-mid-1 #multi-container {
+            width: 100vw;
+            height: 70vh;
+        }
+
+        body.aspect-mid-2 #multi-container {
+            width: 100vw;
+            height: 60vh;
+        }
+
+        body.aspect-mid-3 #multi-container {
+            width: 100vw;
+            height: 50vh;
+        }
+
+        /* Wide panoramic modes - fixed height, ultra-wide */
+        body.aspect-pano-small #multi-container {
+            width: 100vw;
+            height: 40vh;
+        }
+
+        body.aspect-pano-medium #multi-container {
+            width: 100vw;
+            height: 30vh;
+        }
+
+        body.aspect-pano-large #multi-container {
+            width: 100vw;
+            height: 22vh;
+        }
+
+        body.aspect-pano-ultra #multi-container {
+            width: 100vw;
+            height: 15vh;
+        }
+
+        .viewer-panel {
+            flex: 1;
+            position: relative;
+            border-right: 2px solid #1a1a2e;
+            transition: flex 0.3s ease;
+        }
+
+        .viewer-panel.hidden {
+            flex: 0;
+            overflow: hidden;
+            border-right: none;
+        }
+
+        .viewer-panel:last-child {
+            border-right: none;
+        }
+
+        /* Panorama mode - seamless panels */
+        body.panorama-mode .viewer-panel {
+            border-right: none;
+        }
+
+        .viewer-panel canvas {
+            width: 100% !important;
+            height: 100% !important;
+            cursor: grab;
+        }
+
+        .viewer-panel canvas:active {
+            cursor: grabbing;
+        }
+
+        .panel-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            color: #4a90d9;
+        }
+
+        .panel-zoom {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .zoom-btn-small {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn-small:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .fov-display {
+            min-width: 35px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .panel-pitch {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pitch-label {
+            color: #4a90d9;
+            font-weight: 600;
+        }
+
+        .pitch-display {
+            min-width: 45px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .pitch-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pitch-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .panel-yaw {
+            position: absolute;
+            top: 90px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-roll {
+            position: absolute;
+            top: 130px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .yaw-label, .roll-label {
+            color: #4a90d9;
+            font-weight: 600;
+            min-width: 28px;
+        }
+
+        .yaw-display, .roll-display {
+            min-width: 45px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .yaw-btn, .roll-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .yaw-btn:hover, .roll-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Global controls - collapsible panel in top-left */
+        #global-controls {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+        }
+
+        #global-toggle {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #4a90d9;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        #global-toggle:hover {
+            background: rgba(0, 0, 0, 0.95);
+            border-color: #4a90d9;
+        }
+
+        #global-toggle .arrow {
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        #global-toggle.expanded .arrow {
+            transform: rotate(180deg);
+        }
+
+        #global-panel {
+            display: none;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 12px 15px;
+            border-radius: 12px;
+            margin-top: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #global-panel.visible {
+            display: flex;
+        }
+
+        #global-panel .control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #global-panel .label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            min-width: 50px;
+        }
+
+        #sync-toggle, .panel-toggle, .aspect-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+
+        #sync-toggle:hover, .panel-toggle:hover, .aspect-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #sync-toggle.active, .panel-toggle.active, .aspect-toggle.active {
+            background: #4a90d9;
+        }
+
+        /* Panel Day/Night toggle button - positioned at bottom center */
+        .panel-time-toggle {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-time-toggle:hover {
+            transform: translateX(-50%) scale(1.1);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .panel-time-toggle.day {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(251, 191, 36, 0.8));
+            border-color: #fbbf24;
+        }
+
+        .panel-time-toggle.day .sun-icon {
+            display: block;
+        }
+
+        .panel-time-toggle.day .moon-icon {
+            display: none;
+        }
+
+        .panel-time-toggle.night {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.9), rgba(45, 74, 111, 0.9));
+            border-color: #60a5fa;
+        }
+
+        .panel-time-toggle.night .sun-icon {
+            display: none;
+        }
+
+        .panel-time-toggle.night .moon-icon {
+            display: block;
+            color: #fef3c7;
+        }
+
+        .panel-time-toggle.switching {
+            opacity: 0.5;
+            pointer-events: none;
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(0.95); }
+        }
+
+        .global-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .global-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        /* Performance stats display */
+        #perf-stats {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: monospace;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #perf-stats.visible {
+            display: flex;
+        }
+
+        #perf-stats .stat-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        #perf-stats .stat-label {
+            color: #4a90d9;
+            min-width: 60px;
+        }
+
+        #perf-stats .stat-value {
+            color: #fff;
+        }
+
+        #perf-stats .stat-value.good { color: #4ade80; }
+        #perf-stats .stat-value.warn { color: #fbbf24; }
+        #perf-stats .stat-value.bad { color: #f87171; }
+
+        /* Debug log panel */
+        #debug-log {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 400px;
+            max-height: 300px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            z-index: 250;
+            display: none;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        #debug-log.visible {
+            display: flex;
+        }
+
+        #debug-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(74, 144, 217, 0.2);
+        }
+
+        #debug-log-header span {
+            color: #4a90d9;
+            font-weight: 600;
+        }
+
+        #debug-log-header button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        #debug-log-header button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #debug-log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            max-height: 250px;
+        }
+
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            word-wrap: break-word;
+        }
+
+        .log-entry .timestamp {
+            color: #666;
+            margin-right: 8px;
+        }
+
+        .log-entry.log-debug { color: #888; }
+        .log-entry.log-info { color: #4ade80; }
+        .log-entry.log-warn { color: #fbbf24; }
+        .log-entry.log-error { color: #f87171; }
+        .log-entry.log-video { color: #a78bfa; }
+        .log-entry.log-sync { color: #22d3ee; }
+
+        /* Toggle button styling */
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-btn.active {
+            background: #4a90d9;
+        }
+
+        /* Hide panel controls mode */
+        body.hide-panel-controls .panel-label,
+        body.hide-panel-controls .panel-zoom,
+        body.hide-panel-controls .panel-pitch,
+        body.hide-panel-controls .panel-yaw,
+        body.hide-panel-controls .panel-roll {
+            display: none !important;
+        }
+
+        /* Hide UI mode (press H) - clean viewing */
+        body.hide-ui .panel-label,
+        body.hide-ui .panel-zoom,
+        body.hide-ui .panel-pitch,
+        body.hide-ui .panel-yaw,
+        body.hide-ui .panel-roll,
+        body.hide-ui #global-controls {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        body:not(.hide-ui) .panel-label,
+        body:not(.hide-ui) .panel-zoom,
+        body:not(.hide-ui) .panel-pitch,
+        body:not(.hide-ui) .panel-yaw,
+        body:not(.hide-ui) .panel-roll,
+        body:not(.hide-ui) #global-controls {
+            transition: opacity 0.3s;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 21, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+
+        #loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #4a90d9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="multi-container">
+        <div class="viewer-panel" id="panel-1">
+            <div class="panel-label">Flight Line 3</div>
+            <div class="panel-zoom">
+                <button class="zoom-btn-small zoom-out">-</button>
+                <span class="fov-display">60&deg;</span>
+                <button class="zoom-btn-small zoom-in">+</button>
+            </div>
+            <div class="panel-pitch">
+                <span class="pitch-label">Pitch</span>
+                <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
+                <span class="pitch-display">0&deg;</span>
+                <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+            </div>
+            <div class="panel-yaw">
+                <span class="yaw-label">Yaw</span>
+                <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
+                <span class="yaw-display">0&deg;</span>
+                <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
+            </div>
+            <div class="panel-roll">
+                <span class="roll-label">Roll</span>
+                <button class="roll-btn roll-left" title="Roll Left">-</button>
+                <span class="roll-display">0&deg;</span>
+                <button class="roll-btn roll-right" title="Roll Right">+</button>
+            </div>
+            <button class="panel-time-toggle day" data-panel="0" title="Switch to Night">
+                <span class="sun-icon">&#9728;</span>
+                <span class="moon-icon">&#9790;</span>
+            </button>
+        </div>
+        <div class="viewer-panel" id="panel-2">
+            <div class="panel-label">Flight Line 2</div>
+            <div class="panel-zoom">
+                <button class="zoom-btn-small zoom-out">-</button>
+                <span class="fov-display">60&deg;</span>
+                <button class="zoom-btn-small zoom-in">+</button>
+            </div>
+            <div class="panel-pitch">
+                <span class="pitch-label">Pitch</span>
+                <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
+                <span class="pitch-display">0&deg;</span>
+                <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+            </div>
+            <div class="panel-yaw">
+                <span class="yaw-label">Yaw</span>
+                <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
+                <span class="yaw-display">0&deg;</span>
+                <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
+            </div>
+            <div class="panel-roll">
+                <span class="roll-label">Roll</span>
+                <button class="roll-btn roll-left" title="Roll Left">-</button>
+                <span class="roll-display">0&deg;</span>
+                <button class="roll-btn roll-right" title="Roll Right">+</button>
+            </div>
+            <button class="panel-time-toggle day" data-panel="1" title="Switch to Night">
+                <span class="sun-icon">&#9728;</span>
+                <span class="moon-icon">&#9790;</span>
+            </button>
+        </div>
+        <div class="viewer-panel" id="panel-3">
+            <div class="panel-label">Flight Line 1</div>
+            <div class="panel-zoom">
+                <button class="zoom-btn-small zoom-out">-</button>
+                <span class="fov-display">60&deg;</span>
+                <button class="zoom-btn-small zoom-in">+</button>
+            </div>
+            <div class="panel-pitch">
+                <span class="pitch-label">Pitch</span>
+                <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
+                <span class="pitch-display">0&deg;</span>
+                <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+            </div>
+            <div class="panel-yaw">
+                <span class="yaw-label">Yaw</span>
+                <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
+                <span class="yaw-display">0&deg;</span>
+                <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
+            </div>
+            <div class="panel-roll">
+                <span class="roll-label">Roll</span>
+                <button class="roll-btn roll-left" title="Roll Left">-</button>
+                <span class="roll-display">0&deg;</span>
+                <button class="roll-btn roll-right" title="Roll Right">+</button>
+            </div>
+            <button class="panel-time-toggle day" data-panel="2" title="Switch to Night">
+                <span class="sun-icon">&#9728;</span>
+                <span class="moon-icon">&#9790;</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="global-controls">
+        <button id="global-toggle" title="Toggle Controls (Press G)">
+            <span>CONTROLS</span>
+            <span class="arrow">▼</span>
+        </button>
+        <div id="global-panel">
+            <div class="control-row">
+                <span class="label">Panels</span>
+                <button class="panel-toggle active" data-panel="0" title="Toggle Flight Line 3 (1)">FL3</button>
+                <button class="panel-toggle active" data-panel="1" title="Toggle Flight Line 2 (2)">FL2</button>
+                <button class="panel-toggle active" data-panel="2" title="Toggle Flight Line 1 (3)">FL1</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Aspect</span>
+                <button class="aspect-toggle active" data-aspect="full" title="Full screen">Full</button>
+                <button class="aspect-toggle" data-aspect="32-9" title="32:9 Super Ultrawide">32:9</button>
+                <button class="aspect-toggle" data-aspect="21-9" title="21:9 Ultrawide">21:9</button>
+                <button class="aspect-toggle" data-aspect="16-9" title="16:9 Widescreen">16:9</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Mid</span>
+                <button class="aspect-toggle" data-aspect="mid-1" title="Mid-range aspect (70% height)">70%</button>
+                <button class="aspect-toggle" data-aspect="mid-2" title="Mid-range aspect (60% height)">60%</button>
+                <button class="aspect-toggle" data-aspect="mid-3" title="Mid-range aspect (50% height)">50%</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Pano</span>
+                <button class="aspect-toggle" data-aspect="pano-small" title="Wide panorama strip (40% height)">Wide</button>
+                <button class="aspect-toggle" data-aspect="pano-medium" title="Wider panorama strip (30% height)">Wider</button>
+                <button class="aspect-toggle" data-aspect="pano-large" title="Ultra-wide panorama strip (22% height)">Ultra</button>
+                <button class="aspect-toggle" data-aspect="pano-ultra" title="Cinematic letterbox strip (15% height)">Cinema</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Panorama</span>
+                <button id="panorama-toggle" class="active" title="Toggle seamless panorama mode (P)">On</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Link Views</span>
+                <button id="link-toggle" class="active" title="Link pitch/roll across all panels (L)">On</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Pitch Lock</span>
+                <button id="pitch-lock-toggle" title="Lock pitch to prevent changes">Off</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Pitch Sync</span>
+                <button id="pitch-sync-toggle" class="active" title="Sync pitch across all panels independently">On</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Controls</span>
+                <button id="controls-toggle" title="Show/hide panel controls (C)">Off</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Sync</span>
+                <button id="sync-toggle" class="active">On</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Stats</span>
+                <button id="stats-toggle" title="Show performance stats (F)">Off</button>
+            </div>
+            <div class="control-row">
+                <span class="label">Playback</span>
+                <button class="global-btn" id="play-all" title="Play All (Space)">&#9658;</button>
+                <button class="global-btn" id="pause-all" title="Pause All">&#10074;&#10074;</button>
+                <button class="global-btn" id="reset-all" title="Reset All Views (R)">&#x21BA;</button>
+                <button class="global-btn" id="resync-all" title="Resync All Videos (Y)" style="font-size: 10px;">Sync</button>
+            </div>
+            <div class="keyboard-hint">Drag to look | Scroll to zoom | WASD/Arrows = pan | Q/E = roll | +/- = zoom</div>
+            <div class="keyboard-hint">Space = play | 1/2/3 = panels | N = day/night | C = controls | P = panorama | L = link | H = hide UI | R = reset | F = stats</div>
+        </div>
+    </div>
+
+    <div id="perf-stats">
+        <div class="stat-row">
+            <span class="stat-label">Render FPS</span>
+            <span class="stat-value" id="render-fps">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Video FPS</span>
+            <span class="stat-value" id="video-fps">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Resolution</span>
+            <span class="stat-value" id="video-res">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Buffered</span>
+            <span class="stat-value" id="video-buffer">--</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Dropped</span>
+            <span class="stat-value" id="dropped-frames">--</span>
+        </div>
+    </div>
+
+    <!-- Debug Log Panel -->
+    <div id="debug-log">
+        <div id="debug-log-header">
+            <span>🔍 Debug Log (Press ` to toggle)</span>
+            <button id="clear-log">Clear</button>
+        </div>
+        <div id="debug-log-content"></div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-error" style="display:none; text-align:center; color:#f87171; margin-top:20px; font-family:system-ui,sans-serif; max-width:500px; padding:0 20px;">
+            <div style="font-size:18px; font-weight:bold; margin-bottom:10px;">Video files not found</div>
+            <div style="font-size:14px; color:#ccc; line-height:1.6;">
+                The HLS video segments could not be loaded.<br>
+                Please download the video files and place them in:<br>
+                <code style="background:#1a1a2e; padding:4px 8px; border-radius:4px; color:#4a90d9;">videos/hls/</code><br><br>
+                See the README for download instructions.
+            </div>
+        </div>
+    </div>
+
+    <!-- HLS.js for HLS streaming support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // ============================================
+        // DEBUG LOGGER
+        // ============================================
+        const Logger = {
+            enabled: false,
+            maxEntries: 100,
+            logContainer: null,
+
+            init() {
+                this.logContainer = document.getElementById('debug-log-content');
+                document.getElementById('clear-log').addEventListener('click', () => this.clear());
+
+                // Also capture original console methods
+                this._originalConsole = {
+                    log: console.log.bind(console),
+                    warn: console.warn.bind(console),
+                    error: console.error.bind(console)
+                };
+            },
+
+            toggle() {
+                this.enabled = !this.enabled;
+                document.getElementById('debug-log').classList.toggle('visible', this.enabled);
+                if (this.enabled) {
+                    this.info('Debug logging enabled');
+                }
+            },
+
+            clear() {
+                if (this.logContainer) {
+                    this.logContainer.innerHTML = '';
+                }
+            },
+
+            _formatTime() {
+                const now = new Date();
+                return now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+            },
+
+            _addEntry(level, message, ...args) {
+                // Always log to console
+                const consoleMethod = this._originalConsole[level] || this._originalConsole.log;
+                consoleMethod(`[${level.toUpperCase()}]`, message, ...args);
+
+                // Only add to UI if enabled
+                if (!this.enabled || !this.logContainer) return;
+
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${level}`;
+
+                const timestamp = document.createElement('span');
+                timestamp.className = 'timestamp';
+                timestamp.textContent = this._formatTime();
+
+                const text = document.createElement('span');
+                const fullMessage = args.length > 0
+                    ? message + ' ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')
+                    : message;
+                text.textContent = fullMessage;
+
+                entry.appendChild(timestamp);
+                entry.appendChild(text);
+                this.logContainer.appendChild(entry);
+
+                // Auto-scroll to bottom
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+
+                // Limit entries
+                while (this.logContainer.children.length > this.maxEntries) {
+                    this.logContainer.removeChild(this.logContainer.firstChild);
+                }
+            },
+
+            debug(message, ...args) { this._addEntry('debug', message, ...args); },
+            info(message, ...args) { this._addEntry('info', message, ...args); },
+            warn(message, ...args) { this._addEntry('warn', message, ...args); },
+            error(message, ...args) { this._addEntry('error', message, ...args); },
+            video(message, ...args) { this._addEntry('video', message, ...args); },
+            sync(message, ...args) { this._addEntry('sync', message, ...args); }
+        };
+
+        // Initialize logger
+        Logger.init();
+
+        // ============================================
+        // VIDEO URL SETS - Day and Night
+        // ============================================
+        const videoSets = {
+            day: [
+                '/videos/hls/flight_line_3/playlist.m3u8',   // Panel 1 (Left)
+                '/videos/hls/flight_line_2/playlist.m3u8',   // Panel 2 (Center)
+                '/videos/hls/flight_line_1/playlist.m3u8'    // Panel 3 (Right)
+            ],
+            night: [
+                '/videos/hls/night_flight_line_1/playlist.m3u8',   // Panel 1 (Left) - Night FL1
+                '/videos/hls/night_flight_line_2/playlist.m3u8',   // Panel 2 (Center) - Night FL2
+                '/videos/hls/night_flight_line_3/playlist.m3u8'    // Panel 3 (Right) - Night FL3
+            ]
+        };
+
+        // Current time of day (day or night)
+        let currentTimeOfDay = 'day';
+
+        // Video URLs for each panel - starts with day
+        let videoUrls = [...videoSets.day];
+
+        // ============================================
+        // PANORAMA CONFIGURATION
+        // ============================================
+        const panoramaFov = 60;  // FOV for each panel in panorama mode (60° x 3 = 180° total view)
+        const baseYaw = -945;    // Base yaw direction (your aligned direction)
+
+        // ============================================
+        // DEFAULT SETTINGS FOR EACH PANEL
+        // Panorama mode: panels offset by FOV to create seamless wide view
+        // Left panel: -FOV, Center: 0, Right: +FOV
+        // ============================================
+        const panelDefaults = [
+            // Panel 1 (Left) - Flight Line 3
+            {
+                pitch: 0,
+                yaw: baseYaw - panoramaFov,  // Offset left by FOV
+                roll: 0,
+                fov: panoramaFov
+            },
+            // Panel 2 (Center) - Flight Line 2
+            {
+                pitch: 0,
+                yaw: baseYaw,                 // Center reference
+                roll: 0,
+                fov: panoramaFov
+            },
+            // Panel 3 (Right) - Flight Line 1
+            {
+                pitch: 0,
+                yaw: baseYaw + panoramaFov,  // Offset right by FOV
+                roll: 0,
+                fov: panoramaFov
+            }
+        ];
+
+        // State for each viewer
+        const viewers = [];
+        let syncPlayback = true;
+        let panoramaMode = true;   // Seamless panorama mode (no borders)
+        let linkViews = true;      // Link pitch/roll across all panels
+
+        // Press-and-hold continuous control with acceleration
+        // Standard UX: hold button = continuous adjustment, longer hold = faster
+        function setupHoldButton(button, callback) {
+            let intervalId = null;
+            let holdStart = 0;
+            const baseInterval = 50; // ms between updates
+
+            const getSpeed = () => {
+                const holdTime = Date.now() - holdStart;
+                // Acceleration curve: starts at 1°, ramps up over 2 seconds
+                if (holdTime < 300) return 1;      // First 300ms: 1° per tick
+                if (holdTime < 600) return 2;      // 300-600ms: 2° per tick
+                if (holdTime < 1000) return 4;     // 600ms-1s: 4° per tick
+                if (holdTime < 1500) return 8;     // 1-1.5s: 8° per tick
+                if (holdTime < 2000) return 15;    // 1.5-2s: 15° per tick
+                return 25;                          // 2s+: 25° per tick (max speed)
+            };
+
+            const start = (e) => {
+                e.preventDefault();
+                holdStart = Date.now();
+                callback(1); // Immediate first tick
+                intervalId = setInterval(() => callback(getSpeed()), baseInterval);
+            };
+
+            const stop = () => {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+            };
+
+            // Mouse events
+            button.addEventListener('mousedown', start);
+            button.addEventListener('mouseup', stop);
+            button.addEventListener('mouseleave', stop);
+
+            // Touch events for mobile
+            button.addEventListener('touchstart', start, { passive: false });
+            button.addEventListener('touchend', stop);
+            button.addEventListener('touchcancel', stop);
+        }
+
+        class Viewer360 {
+            constructor(container, videoUrl, index, autoLoad = true) {
+                this.container = container;
+                this.videoUrl = videoUrl;
+                this.index = index;
+                // Get defaults for this panel
+                const defaults = panelDefaults[index];
+                this.fov = defaults.fov;
+                this.minFov = 30;
+                this.maxFov = 150;
+                this.lon = defaults.yaw;      // Yaw (horizontal rotation)
+                this.lat = defaults.pitch;    // Pitch (positive = look down, negative = look up)
+                this.roll = defaults.roll;    // Roll
+
+                // Mouse drag state (standard 360 viewer control)
+                this.isDragging = false;
+                this.dragStartX = 0;
+                this.dragStartY = 0;
+                this.dragStartLon = 0;
+                this.dragStartLat = 0;
+
+                this.autoLoad = autoLoad;
+                this.init();
+            }
+
+            init() {
+                // Scene
+                this.scene = new THREE.Scene();
+
+                // Camera - positioned at center of sphere, rotation order set for proper pitch/yaw/roll
+                this.camera = new THREE.PerspectiveCamera(this.fov, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+                this.camera.position.set(0, 0, 0);
+                this.camera.rotation.order = 'YXZ';  // Yaw, Pitch, Roll order
+
+                // Renderer - limit pixel ratio for performance
+                this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.container.insertBefore(this.renderer.domElement, this.container.firstChild);
+
+                // Sphere - reduced segments for performance
+                const geometry = new THREE.SphereGeometry(500, 48, 32);
+                geometry.scale(-1, 1, 1);
+                const material = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
+                this.sphere = new THREE.Mesh(geometry, material);
+                this.scene.add(this.sphere);
+
+                // Video element for this panel
+                this.video = document.createElement('video');
+                this.video.crossOrigin = 'anonymous';
+                this.video.loop = true;
+                this.video.muted = true;
+                this.video.playsInline = true;
+                this.video.preload = 'metadata'; // Only load metadata initially to avoid competing for bandwidth
+
+                this.video.addEventListener('loadedmetadata', () => this.onVideoLoaded());
+
+                // Setup detailed video event logging
+                this.setupVideoEventLogging();
+
+                // Load video if autoLoad is true
+                if (this.autoLoad) {
+                    this.loadVideo();
+                }
+
+                // ============================================
+                // STANDARD 360 VIEWER CONTROLS
+                // Matches Insta360 Studio / YouTube 360 pattern:
+                // - Click and drag to pan/tilt
+                // - Mouse wheel to zoom (FOV)
+                // ============================================
+
+                // Mouse wheel zoom
+                this.renderer.domElement.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+
+                // Click and drag to look around (standard 360 control)
+                this.renderer.domElement.addEventListener('mousedown', (e) => this.onMouseDown(e));
+                this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                this.renderer.domElement.addEventListener('mouseup', () => this.onMouseUp());
+                this.renderer.domElement.addEventListener('mouseleave', () => this.onMouseUp());
+
+                // Touch support for mobile (drag to look around)
+                this.renderer.domElement.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+                this.renderer.domElement.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+                this.renderer.domElement.addEventListener('touchend', () => this.onTouchEnd());
+
+                // Control buttons
+                const zoomIn = this.container.querySelector('.zoom-in');
+                const zoomOut = this.container.querySelector('.zoom-out');
+
+                // FOV controls - press and hold with acceleration
+                setupHoldButton(zoomIn, (speed) => this.updateFov(this.fov - speed));
+                setupHoldButton(zoomOut, (speed) => this.updateFov(this.fov + speed));
+
+                // Pitch controls - press and hold with acceleration
+                const pitchUp = this.container.querySelector('.pitch-up');
+                const pitchDown = this.container.querySelector('.pitch-down');
+                setupHoldButton(pitchUp, (speed) => this.adjustPitch(-speed));
+                setupHoldButton(pitchDown, (speed) => this.adjustPitch(speed));
+
+                // Yaw controls - press and hold with acceleration
+                const yawLeft = this.container.querySelector('.yaw-left');
+                const yawRight = this.container.querySelector('.yaw-right');
+                setupHoldButton(yawLeft, (speed) => this.adjustYaw(-speed));
+                setupHoldButton(yawRight, (speed) => this.adjustYaw(speed));
+
+                // Roll controls - press and hold with acceleration
+                const rollLeft = this.container.querySelector('.roll-left');
+                const rollRight = this.container.querySelector('.roll-right');
+                setupHoldButton(rollLeft, (speed) => this.adjustRoll(-speed));
+                setupHoldButton(rollRight, (speed) => this.adjustRoll(speed));
+
+                this.animate();
+            }
+
+            onVideoLoaded() {
+                Logger.video(`Panel ${this.index + 1}: Video loaded, duration: ${this.video.duration.toFixed(2)}s, resolution: ${this.video.videoWidth}x${this.video.videoHeight}`);
+
+                const videoTexture = new THREE.VideoTexture(this.video);
+                videoTexture.colorSpace = THREE.SRGBColorSpace;
+                videoTexture.minFilter = THREE.LinearFilter;
+                videoTexture.magFilter = THREE.LinearFilter;
+
+                this.sphere.material = new THREE.MeshBasicMaterial({ map: videoTexture });
+
+                // Don't auto-play - let initViewers handle synchronized start
+                Logger.video(`Panel ${this.index + 1}: Ready for playback`);
+            }
+
+            setupVideoEventLogging() {
+                const video = this.video;
+                const panelId = this.index + 1;
+
+                video.addEventListener('waiting', () => {
+                    Logger.video(`Panel ${panelId}: Buffering...`);
+                });
+
+                video.addEventListener('playing', () => {
+                    Logger.video(`Panel ${panelId}: Resumed playing at ${video.currentTime.toFixed(2)}s`);
+                });
+
+                video.addEventListener('stalled', () => {
+                    Logger.warn(`Panel ${panelId}: Stalled - network issue?`);
+                });
+
+                video.addEventListener('error', (e) => {
+                    const error = video.error;
+                    Logger.error(`Panel ${panelId}: Video error - code: ${error?.code}, message: ${error?.message}`);
+                });
+
+                video.addEventListener('seeked', () => {
+                    Logger.video(`Panel ${panelId}: Seeked to ${video.currentTime.toFixed(2)}s`);
+                });
+            }
+
+            loadVideo() {
+                if (this.videoUrl.endsWith('.m3u8') && Hls.isSupported()) {
+                    // HLS.js for browsers that don't natively support HLS
+                    // Conservative settings for 3 simultaneous 4K streams
+                    this.hls = new Hls({
+                        maxBufferLength: 10,           // Buffer 10 seconds ahead (reduced for 3 streams)
+                        maxMaxBufferLength: 20,        // Max 20 seconds buffer
+                        maxBufferSize: 30 * 1000000,   // 30MB max buffer per stream
+                        maxBufferHole: 0.5,            // Allow small gaps
+                        startLevel: -1,                // Auto quality selection
+                        backBufferLength: 10,          // Keep 10s of back buffer
+                        debug: false
+                    });
+                    this.hls.loadSource(this.videoUrl);
+                    this.hls.attachMedia(this.video);
+                    this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        Logger.video(`Panel ${this.index + 1}: HLS manifest loaded`);
+                    });
+                    this.hls.on(Hls.Events.ERROR, (event, data) => {
+                        if (data.fatal) {
+                            Logger.error(`Panel ${this.index + 1}: HLS fatal error`, data.type, data.details);
+                            // Try to recover from fatal errors
+                            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                                Logger.info(`Panel ${this.index + 1}: Attempting recovery...`);
+                                this.hls.recoverMediaError();
+                            }
+                        }
+                        // Don't log non-fatal bufferFullError - it's expected with multiple streams
+                        else if (data.details !== 'bufferFullError') {
+                            Logger.warn(`Panel ${this.index + 1}: HLS error`, data.type, data.details);
+                        }
+                    });
+                } else if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Native HLS support (Safari)
+                    this.video.src = this.videoUrl;
+                    this.video.load();
+                } else {
+                    // Fallback to direct source
+                    this.video.src = this.videoUrl;
+                    this.video.load();
+                }
+            }
+
+            destroy() {
+                if (this.hls) {
+                    this.hls.destroy();
+                    this.hls = null;
+                }
+            }
+
+            // Switch video source (for day/night toggle)
+            // Returns a promise that resolves when the new video is ready
+            switchSource(newUrl) {
+                return new Promise((resolve, reject) => {
+                    const currentTime = this.video.currentTime;
+                    const wasPlaying = !this.video.paused;
+
+                    Logger.video(`Panel ${this.index + 1}: Switching source at ${currentTime.toFixed(2)}s`);
+
+                    // Pause current video
+                    this.video.pause();
+
+                    // Destroy existing HLS instance
+                    if (this.hls) {
+                        this.hls.destroy();
+                        this.hls = null;
+                    }
+
+                    // Update URL
+                    this.videoUrl = newUrl;
+
+                    // Load new source
+                    if (this.videoUrl.endsWith('.m3u8') && Hls.isSupported()) {
+                        this.hls = new Hls({
+                            maxBufferLength: 10,
+                            maxMaxBufferLength: 20,
+                            maxBufferSize: 30 * 1000000,
+                            maxBufferHole: 0.5,
+                            startLevel: -1,
+                            backBufferLength: 10,
+                            debug: false
+                        });
+
+                        this.hls.loadSource(this.videoUrl);
+                        this.hls.attachMedia(this.video);
+
+                        this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                            Logger.video(`Panel ${this.index + 1}: New HLS manifest loaded`);
+                            // Seek to previous position
+                            this.video.currentTime = currentTime;
+                        });
+
+                        this.hls.on(Hls.Events.ERROR, (event, data) => {
+                            if (data.fatal) {
+                                Logger.error(`Panel ${this.index + 1}: HLS fatal error during switch`, data.type, data.details);
+                                reject(data);
+                            }
+                        });
+
+                        // Wait for video to be ready at the target time
+                        const onSeeked = () => {
+                            this.video.removeEventListener('seeked', onSeeked);
+                            Logger.video(`Panel ${this.index + 1}: Ready at ${this.video.currentTime.toFixed(2)}s`);
+                            if (wasPlaying) {
+                                this.video.play().catch(e => Logger.error('Play error:', e.message));
+                            }
+                            resolve();
+                        };
+                        this.video.addEventListener('seeked', onSeeked);
+
+                    } else {
+                        this.video.src = this.videoUrl;
+                        this.video.currentTime = currentTime;
+                        this.video.load();
+                        if (wasPlaying) {
+                            this.video.play().catch(e => Logger.error('Play error:', e.message));
+                        }
+                        resolve();
+                    }
+                });
+            }
+
+            // ============================================
+            // MOUSE DRAG CONTROLS (Standard 360 viewer)
+            // Drag direction: drag right = look right, drag up = look up
+            // This matches YouTube 360, Insta360, and most VR viewers
+            // ============================================
+            onMouseDown(event) {
+                // Only respond to left mouse button
+                if (event.button !== 0) return;
+
+                this.isDragging = true;
+                this.dragStartX = event.clientX;
+                this.dragStartY = event.clientY;
+                this.dragStartLon = this.lon;
+                this.dragStartLat = this.lat;
+                this.renderer.domElement.style.cursor = 'grabbing';
+            }
+
+            onMouseMove(event) {
+                if (!this.isDragging) return;
+
+                // Calculate drag delta
+                const deltaX = event.clientX - this.dragStartX;
+                const deltaY = event.clientY - this.dragStartY;
+
+                // Sensitivity: adjust these for faster/slower response
+                // Scaled by FOV so dragging feels consistent at different zoom levels
+                const sensitivity = this.fov / 1000;
+
+                // Update yaw (horizontal) - drag right = look right (increase lon)
+                const newLon = this.dragStartLon - deltaX * sensitivity;
+
+                // Update pitch (vertical) - drag up = look up (decrease lat)
+                // Respects pitchLocked and pitchSynced settings
+                if (!pitchLocked) {
+                    const newLat = this.dragStartLat + deltaY * sensitivity;
+
+                    if (pitchSynced) {
+                        // Calculate delta from current position for synced movement
+                        const latDelta = newLat - this.lat;
+                        viewers.forEach(v => {
+                            v.lat = Math.max(-89, Math.min(89, v.lat + latDelta));
+                        });
+                    } else {
+                        this.lat = Math.max(-89, Math.min(89, newLat));
+                    }
+                }
+
+                // Yaw is always individual (maintains panorama offset)
+                this.lon = newLon;
+            }
+
+            onMouseUp() {
+                this.isDragging = false;
+                this.renderer.domElement.style.cursor = 'grab';
+            }
+
+            // ============================================
+            // TOUCH CONTROLS (Mobile - matches Insta360 app)
+            // Single finger drag to look around
+            // Pinch to zoom handled separately
+            // ============================================
+            onTouchStart(event) {
+                if (event.touches.length === 1) {
+                    event.preventDefault();
+                    this.isDragging = true;
+                    this.dragStartX = event.touches[0].clientX;
+                    this.dragStartY = event.touches[0].clientY;
+                    this.dragStartLon = this.lon;
+                    this.dragStartLat = this.lat;
+                } else if (event.touches.length === 2) {
+                    // Pinch zoom - store initial distance
+                    this.pinchStartDist = this.getTouchDistance(event.touches);
+                    this.pinchStartFov = this.fov;
+                    this.isDragging = false;
+                }
+            }
+
+            onTouchMove(event) {
+                if (event.touches.length === 1 && this.isDragging) {
+                    event.preventDefault();
+
+                    const deltaX = event.touches[0].clientX - this.dragStartX;
+                    const deltaY = event.touches[0].clientY - this.dragStartY;
+
+                    const sensitivity = this.fov / 500; // Slightly higher sensitivity for touch
+
+                    const newLon = this.dragStartLon - deltaX * sensitivity;
+
+                    // Pitch - respects pitchLocked and pitchSynced
+                    if (!pitchLocked) {
+                        const newLat = this.dragStartLat + deltaY * sensitivity;
+
+                        if (pitchSynced) {
+                            const latDelta = newLat - this.lat;
+                            viewers.forEach(v => {
+                                v.lat = Math.max(-89, Math.min(89, v.lat + latDelta));
+                            });
+                        } else {
+                            this.lat = Math.max(-89, Math.min(89, newLat));
+                        }
+                    }
+
+                    this.lon = newLon;
+                } else if (event.touches.length === 2) {
+                    // Pinch zoom
+                    event.preventDefault();
+                    const dist = this.getTouchDistance(event.touches);
+                    const scale = this.pinchStartDist / dist;
+                    this.updateFov(this.pinchStartFov * scale);
+                }
+            }
+
+            onTouchEnd() {
+                this.isDragging = false;
+            }
+
+            getTouchDistance(touches) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            onWheel(event) {
+                event.preventDefault();
+                // Mouse wheel zoom - scroll up = zoom in (decrease FOV)
+                this.updateFov(this.fov + event.deltaY * 0.05);
+            }
+
+            updateFov(newFov) {
+                this.fov = Math.max(this.minFov, Math.min(this.maxFov, newFov));
+                this.camera.fov = this.fov;
+                this.camera.updateProjectionMatrix();
+                this.container.querySelector('.fov-display').textContent = Math.round(this.fov) + '\u00B0';
+            }
+
+            adjustPitch(delta) {
+                // Check if pitch is locked
+                if (pitchLocked) return;
+
+                // Use pitchSynced for pitch-specific sync (independent of linkViews)
+                if (pitchSynced) {
+                    // Apply to all viewers when pitch sync is on
+                    viewers.forEach(v => {
+                        v.lat = Math.max(-89, Math.min(89, v.lat + delta));
+                    });
+                } else {
+                    this.lat = Math.max(-89, Math.min(89, this.lat + delta));
+                }
+            }
+
+            adjustYaw(delta) {
+                // Yaw is always individual (maintains panorama offset)
+                this.lon += delta;
+            }
+
+            adjustRoll(delta) {
+                if (linkViews) {
+                    // Apply to all viewers when linked
+                    viewers.forEach(v => {
+                        v.roll += delta;
+                    });
+                } else {
+                    this.roll += delta;
+                }
+            }
+
+            resetView() {
+                const defaults = panelDefaults[this.index];
+                this.lon = defaults.yaw;
+                this.lat = defaults.pitch;
+                this.roll = defaults.roll;
+                this.updateFov(defaults.fov);
+            }
+
+            resize() {
+                this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            }
+
+            updateDisplays() {
+                // Pitch display (positive = down, negative = up)
+                const pitchDisplay = this.container.querySelector('.pitch-display');
+                const pitch = Math.round(this.lat);
+                const pitchSign = pitch >= 0 ? '+' : '';
+                pitchDisplay.textContent = `${pitchSign}${pitch}\u00B0`;
+
+                // Yaw display (normalize to -180 to 180 for display)
+                const yawDisplay = this.container.querySelector('.yaw-display');
+                let yaw = this.lon % 360;
+                if (yaw > 180) yaw -= 360;
+                if (yaw < -180) yaw += 360;
+                const yawSign = yaw >= 0 ? '+' : '';
+                yawDisplay.textContent = `${yawSign}${Math.round(yaw)}\u00B0`;
+
+                // Roll display
+                const rollDisplay = this.container.querySelector('.roll-display');
+                let roll = this.roll % 360;
+                if (roll > 180) roll -= 360;
+                if (roll < -180) roll += 360;
+                const rollSign = roll >= 0 ? '+' : '';
+                rollDisplay.textContent = `${rollSign}${Math.round(roll)}\u00B0`;
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // Clamp pitch
+                this.lat = Math.max(-89, Math.min(89, this.lat));
+
+                // Convert degrees to radians
+                // Pitch is now positive = look down, negative = look up (inverted POV)
+                const pitch = THREE.MathUtils.degToRad(this.lat);   // Pitch (X rotation) - inverted
+                const yaw = THREE.MathUtils.degToRad(this.lon);      // Yaw (Y rotation)
+                const roll = THREE.MathUtils.degToRad(this.roll);    // Roll (Z rotation)
+
+                // Use YXZ rotation order for proper pitch/yaw/roll behavior
+                // This is the standard order for flight dynamics and avoids gimbal lock issues
+                this.camera.rotation.order = 'YXZ';
+                this.camera.rotation.set(pitch, yaw, roll);
+
+                // Update all displays
+                this.updateDisplays();
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize viewers with HLS streaming - much simpler than direct MP4
+        // HLS.js handles buffering automatically with small segment files
+        function initViewers() {
+            const panels = document.querySelectorAll('.viewer-panel');
+
+            // Create all viewers
+            panels.forEach((panel, index) => {
+                const viewer = new Viewer360(panel, videoUrls[index], index, false);
+                viewers.push(viewer);
+            });
+
+            Logger.info('Loading HLS streams...');
+
+            let loadedCount = 0;
+            const totalVideos = viewers.length;
+
+            viewers.forEach((viewer, index) => {
+                // HLS.js handles buffering automatically
+                viewer.loadVideo();
+
+                // Listen for canplay event (video is ready to start)
+                viewer.video.addEventListener('canplay', () => {
+                    loadedCount++;
+                    Logger.video(`Panel ${index + 1}: Ready (${loadedCount}/${totalVideos})`);
+
+                    if (loadedCount === totalVideos) {
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        Logger.info('All HLS streams ready - starting synchronized playback');
+
+                        // Sync to start and play
+                        viewers.forEach(v => v.video.currentTime = 0);
+                        setTimeout(() => playAll(), 100);
+                    }
+                }, { once: true });
+
+                // Also listen for errors
+                viewer.video.addEventListener('error', (e) => {
+                    Logger.error(`Panel ${index + 1}: Video error`, viewer.video.error?.message);
+                }, { once: true });
+            });
+
+            // Fallback timeout - start with whatever is ready after 15 seconds
+            setTimeout(() => {
+                if (!document.getElementById('loading-overlay').classList.contains('hidden')) {
+                    if (loadedCount === 0) {
+                        // No videos loaded at all - show helpful error
+                        document.querySelector('#loading-overlay .spinner').style.display = 'none';
+                        document.getElementById('loading-error').style.display = 'block';
+                        Logger.error('No video streams could be loaded. Check that videos/hls/ contains the HLS segments.');
+                    } else {
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        Logger.warn('Timeout - starting with available streams');
+                        viewers.forEach(v => v.video.currentTime = 0);
+                        playAll();
+                    }
+                }
+            }, 15000);
+        }
+
+        // Global controls - collapsible panel
+        const globalToggle = document.getElementById('global-toggle');
+        const globalPanel = document.getElementById('global-panel');
+        const syncToggle = document.getElementById('sync-toggle');
+
+        function toggleGlobalPanel() {
+            globalPanel.classList.toggle('visible');
+            globalToggle.classList.toggle('expanded');
+        }
+
+        function playAll() {
+            Logger.info('Playing all videos');
+            viewers.forEach(v => {
+                v.video.play().catch(e => Logger.error('Play error:', e.message));
+            });
+        }
+
+        function pauseAll() {
+            viewers.forEach(v => v.video.pause());
+        }
+
+        function togglePlayPause() {
+            // Check if any video is playing
+            const anyPlaying = viewers.some(v => !v.video.paused);
+            if (anyPlaying) {
+                pauseAll();
+            } else {
+                playAll();
+            }
+        }
+
+        function resetAll() {
+            viewers.forEach(v => v.resetView());
+        }
+
+        globalToggle.addEventListener('click', toggleGlobalPanel);
+
+        // Panel visibility toggles
+        const panelToggles = document.querySelectorAll('.panel-toggle');
+        const panelElements = document.querySelectorAll('.viewer-panel');
+
+        function togglePanel(index) {
+            const panel = panelElements[index];
+            const toggle = panelToggles[index];
+            const isHidden = panel.classList.toggle('hidden');
+            toggle.classList.toggle('active', !isHidden);
+
+            // Resize visible viewers after transition
+            setTimeout(() => {
+                viewers.forEach((v, i) => {
+                    if (!panelElements[i].classList.contains('hidden')) {
+                        v.resize();
+                    }
+                });
+            }, 350);
+        }
+
+        panelToggles.forEach((toggle, index) => {
+            toggle.addEventListener('click', () => togglePanel(index));
+        });
+
+        // Aspect ratio toggles
+        const aspectToggles = document.querySelectorAll('.aspect-toggle');
+        let currentAspect = 'full';
+
+        function setAspectRatio(aspect) {
+            // Remove all aspect classes
+            document.body.classList.remove('aspect-16-9', 'aspect-21-9', 'aspect-32-9', 'aspect-mid-1', 'aspect-mid-2', 'aspect-mid-3', 'aspect-pano-small', 'aspect-pano-medium', 'aspect-pano-large', 'aspect-pano-ultra');
+
+            // Add new aspect class if not full
+            if (aspect !== 'full') {
+                document.body.classList.add(`aspect-${aspect}`);
+            }
+
+            // Update button states
+            aspectToggles.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.aspect === aspect);
+            });
+
+            currentAspect = aspect;
+
+            // Resize viewers after aspect change
+            setTimeout(() => {
+                viewers.forEach((v, i) => {
+                    if (!panelElements[i].classList.contains('hidden')) {
+                        v.resize();
+                    }
+                });
+            }, 50);
+        }
+
+        aspectToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => setAspectRatio(toggle.dataset.aspect));
+        });
+
+        // Panorama mode toggle
+        const panoramaToggle = document.getElementById('panorama-toggle');
+        panoramaToggle.addEventListener('click', function() {
+            panoramaMode = !panoramaMode;
+            this.classList.toggle('active', panoramaMode);
+            this.textContent = panoramaMode ? 'On' : 'Off';
+            document.body.classList.toggle('panorama-mode', panoramaMode);
+        });
+        // Initialize panorama mode on load
+        document.body.classList.add('panorama-mode');
+
+        // Link views toggle
+        const linkToggle = document.getElementById('link-toggle');
+        linkToggle.addEventListener('click', function() {
+            linkViews = !linkViews;
+            this.classList.toggle('active', linkViews);
+            this.textContent = linkViews ? 'On' : 'Off';
+        });
+
+        // Pitch lock toggle - prevents any pitch changes
+        let pitchLocked = false;
+        const pitchLockToggle = document.getElementById('pitch-lock-toggle');
+        pitchLockToggle.addEventListener('click', function() {
+            pitchLocked = !pitchLocked;
+            this.classList.toggle('active', pitchLocked);
+            this.textContent = pitchLocked ? 'On' : 'Off';
+        });
+
+        // Pitch sync toggle - sync pitch across panels independently of linkViews
+        let pitchSynced = true;
+        const pitchSyncToggle = document.getElementById('pitch-sync-toggle');
+        pitchSyncToggle.addEventListener('click', function() {
+            pitchSynced = !pitchSynced;
+            this.classList.toggle('active', pitchSynced);
+            this.textContent = pitchSynced ? 'On' : 'Off';
+        });
+
+        syncToggle.addEventListener('click', function() {
+            syncPlayback = !syncPlayback;
+            this.classList.toggle('active', syncPlayback);
+            this.textContent = syncPlayback ? 'On' : 'Off';
+        });
+
+        // Panel controls visibility toggle (hidden by default)
+        const controlsToggle = document.getElementById('controls-toggle');
+        let showPanelControls = false;
+        document.body.classList.add('hide-panel-controls'); // Start hidden
+
+        controlsToggle.addEventListener('click', function() {
+            showPanelControls = !showPanelControls;
+            this.classList.toggle('active', showPanelControls);
+            this.textContent = showPanelControls ? 'On' : 'Off';
+            document.body.classList.toggle('hide-panel-controls', !showPanelControls);
+        });
+
+        // ============================================
+        // PER-PANEL DAY/NIGHT TOGGLE
+        // ============================================
+        // Track which time of day each panel is showing
+        const panelTimeState = ['day', 'day', 'day'];
+
+        // Set up panel time toggle buttons
+        document.querySelectorAll('.panel-time-toggle').forEach(button => {
+            button.addEventListener('click', async function() {
+                const panelIndex = parseInt(this.dataset.panel);
+                const viewer = viewers[panelIndex];
+                if (!viewer) return;
+
+                // Prevent double-clicks during switch
+                if (this.classList.contains('switching')) return;
+                this.classList.add('switching');
+
+                // Toggle time state
+                const newTime = panelTimeState[panelIndex] === 'day' ? 'night' : 'day';
+                panelTimeState[panelIndex] = newTime;
+
+                // Get new URL
+                const newUrl = videoSets[newTime][panelIndex];
+
+                Logger.info(`Panel ${panelIndex + 1}: Switching to ${newTime}`);
+
+                try {
+                    await viewer.switchSource(newUrl);
+
+                    // Update button appearance
+                    this.classList.remove('day', 'night');
+                    this.classList.add(newTime);
+                    this.title = newTime === 'day' ? 'Switch to Night' : 'Switch to Day';
+
+                    Logger.info(`Panel ${panelIndex + 1}: Now showing ${newTime}`);
+                } catch (error) {
+                    Logger.error(`Panel ${panelIndex + 1}: Failed to switch - ${error}`);
+                    // Revert state on error
+                    panelTimeState[panelIndex] = panelTimeState[panelIndex] === 'day' ? 'night' : 'day';
+                }
+
+                this.classList.remove('switching');
+            });
+        });
+
+        // Performance stats toggle and tracking
+        const statsToggle = document.getElementById('stats-toggle');
+        const perfStats = document.getElementById('perf-stats');
+        let showStats = false;
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        let renderFps = 0;
+
+        statsToggle.addEventListener('click', function() {
+            showStats = !showStats;
+            this.classList.toggle('active', showStats);
+            this.textContent = showStats ? 'On' : 'Off';
+            perfStats.classList.toggle('visible', showStats);
+        });
+
+        // FPS and video stats update loop
+        function updatePerformanceStats() {
+            if (!showStats) {
+                requestAnimationFrame(updatePerformanceStats);
+                return;
+            }
+
+            const now = performance.now();
+            frameCount++;
+
+            // Check sync drift
+            checkSyncDrift();
+
+            // Update FPS every 500ms
+            if (now - lastFpsUpdate >= 500) {
+                renderFps = Math.round(frameCount * 1000 / (now - lastFpsUpdate));
+                frameCount = 0;
+                lastFpsUpdate = now;
+
+                // Update render FPS display
+                const fpsEl = document.getElementById('render-fps');
+                fpsEl.textContent = `${renderFps} fps`;
+                fpsEl.className = 'stat-value ' + (renderFps >= 55 ? 'good' : renderFps >= 30 ? 'warn' : 'bad');
+
+                // Get video stats from first viewer
+                if (viewers.length > 0 && viewers[0].video) {
+                    const video = viewers[0].video;
+
+                    // Video resolution
+                    const resEl = document.getElementById('video-res');
+                    if (video.videoWidth && video.videoHeight) {
+                        resEl.textContent = `${video.videoWidth}x${video.videoHeight}`;
+                    }
+
+                    // Buffered percentage
+                    const bufferEl = document.getElementById('video-buffer');
+                    if (video.buffered.length > 0 && video.duration) {
+                        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                        const bufferedPercent = Math.round((bufferedEnd / video.duration) * 100);
+                        bufferEl.textContent = `${bufferedPercent}%`;
+                        bufferEl.className = 'stat-value ' + (bufferedPercent >= 90 ? 'good' : bufferedPercent >= 50 ? 'warn' : 'bad');
+                    }
+
+                    // Dropped frames (if supported)
+                    const droppedEl = document.getElementById('dropped-frames');
+                    if (video.getVideoPlaybackQuality) {
+                        const quality = video.getVideoPlaybackQuality();
+                        const dropped = quality.droppedVideoFrames;
+                        const total = quality.totalVideoFrames;
+                        const dropRate = total > 0 ? ((dropped / total) * 100).toFixed(1) : 0;
+                        droppedEl.textContent = `${dropped} (${dropRate}%)`;
+                        droppedEl.className = 'stat-value ' + (dropRate < 1 ? 'good' : dropRate < 5 ? 'warn' : 'bad');
+
+                        // Calculate video FPS from decoded frames
+                        const videoFpsEl = document.getElementById('video-fps');
+                        // Estimate video FPS based on duration and total frames
+                        if (video.duration && total > 0) {
+                            const estimatedFps = Math.round(total / video.currentTime);
+                            videoFpsEl.textContent = `~${estimatedFps} fps`;
+                        }
+                    } else {
+                        droppedEl.textContent = 'N/A';
+                        document.getElementById('video-fps').textContent = 'N/A';
+                    }
+                }
+            }
+
+            requestAnimationFrame(updatePerformanceStats);
+        }
+        updatePerformanceStats();
+
+        function resyncAll() {
+            // Get the current time from the first playing video
+            const activeViewer = viewers.find(v => !v.video.paused) || viewers[0];
+            const targetTime = activeViewer.video.currentTime;
+
+            Logger.sync(`Resyncing all videos to ${targetTime.toFixed(2)}s`);
+
+            // Log current drift before sync
+            const times = viewers.map(v => v.video.currentTime);
+            const maxDrift = Math.max(...times) - Math.min(...times);
+            if (maxDrift > 0.1) {
+                Logger.sync(`Pre-sync drift: ${(maxDrift * 1000).toFixed(0)}ms`);
+            }
+
+            // Pause all, set time, then play all
+            viewers.forEach(v => v.video.pause());
+
+            setTimeout(() => {
+                viewers.forEach(v => {
+                    v.video.currentTime = targetTime;
+                });
+
+                setTimeout(() => {
+                    viewers.forEach(v => {
+                        v.video.play().catch(e => Logger.error('Play error:', e.message));
+                    });
+                    Logger.sync('Resync complete');
+                }, 100);
+            }, 100);
+        }
+
+        // Periodic sync drift monitoring
+        let lastDriftCheck = 0;
+        function checkSyncDrift() {
+            if (!Logger.enabled) return;
+
+            const now = Date.now();
+            if (now - lastDriftCheck < 5000) return; // Check every 5 seconds
+            lastDriftCheck = now;
+
+            if (viewers.length < 2) return;
+
+            const times = viewers.map(v => v.video.currentTime);
+            const maxDrift = Math.max(...times) - Math.min(...times);
+
+            if (maxDrift > 0.5) {
+                Logger.warn(`Sync drift detected: ${(maxDrift * 1000).toFixed(0)}ms - press Y to resync`);
+            }
+        }
+
+        document.getElementById('play-all').addEventListener('click', playAll);
+        document.getElementById('pause-all').addEventListener('click', pauseAll);
+        document.getElementById('reset-all').addEventListener('click', resetAll);
+        document.getElementById('resync-all').addEventListener('click', resyncAll);
+
+        // ============================================
+        // KEYBOARD CONTROLS
+        // WASD + Arrow Keys = pan/tilt (YouTube 360 standard)
+        // +/- = zoom
+        // Q/E = roll
+        // Space = play/pause
+        // ============================================
+
+        // Track which keys are currently pressed for smooth movement
+        const keysPressed = new Set();
+        const keyboardSpeed = 2; // Degrees per frame
+
+        // Keyboard navigation - continuous movement while key is held
+        function updateKeyboardMovement() {
+            if (keysPressed.size === 0) return;
+
+            // Pan/Tilt with WASD or Arrow Keys (YouTube 360 standard)
+            // W/Up = look up, S/Down = look down, A/Left = look left, D/Right = look right
+            let latDelta = 0;
+            let lonDelta = 0;
+            let rollDelta = 0;
+            let fovDelta = 0;
+
+            // Vertical (pitch)
+            if (keysPressed.has('w') || keysPressed.has('arrowup')) {
+                latDelta -= keyboardSpeed; // Look up
+            }
+            if (keysPressed.has('s') || keysPressed.has('arrowdown')) {
+                latDelta += keyboardSpeed; // Look down
+            }
+
+            // Horizontal (yaw)
+            if (keysPressed.has('a') || keysPressed.has('arrowleft')) {
+                lonDelta -= keyboardSpeed; // Look left
+            }
+            if (keysPressed.has('d') || keysPressed.has('arrowright')) {
+                lonDelta += keyboardSpeed; // Look right
+            }
+
+            // Roll (Q/E)
+            if (keysPressed.has('q')) {
+                rollDelta -= keyboardSpeed; // Roll left
+            }
+            if (keysPressed.has('e')) {
+                rollDelta += keyboardSpeed; // Roll right
+            }
+
+            // Zoom (+/- or =/-)
+            if (keysPressed.has('=') || keysPressed.has('+')) {
+                fovDelta -= keyboardSpeed; // Zoom in
+            }
+            if (keysPressed.has('-') || keysPressed.has('_')) {
+                fovDelta += keyboardSpeed; // Zoom out
+            }
+
+            // Apply movements to all viewers (or focused one)
+            viewers.forEach(v => {
+                // Pitch - respects pitchLocked and pitchSynced
+                if (latDelta !== 0 && !pitchLocked) {
+                    if (pitchSynced) {
+                        v.lat = Math.max(-89, Math.min(89, v.lat + latDelta));
+                    }
+                }
+
+                // Yaw - individual per panel (maintains panorama offset)
+                if (lonDelta !== 0) {
+                    v.lon += lonDelta;
+                }
+
+                // Roll - linked across all panels
+                if (rollDelta !== 0) {
+                    if (linkViews) {
+                        v.roll += rollDelta;
+                    }
+                }
+
+                // FOV - linked across all panels
+                if (fovDelta !== 0) {
+                    v.updateFov(v.fov + fovDelta);
+                }
+            });
+
+            // If pitch not synced, only apply to first panel
+            if (!pitchSynced && !pitchLocked && latDelta !== 0) {
+                viewers[0].lat = Math.max(-89, Math.min(89, viewers[0].lat + latDelta));
+            }
+
+            // If roll not linked, only apply to first panel
+            if (!linkViews && rollDelta !== 0) {
+                viewers[0].roll += rollDelta;
+            }
+        }
+
+        // Run keyboard movement in animation loop
+        function keyboardLoop() {
+            updateKeyboardMovement();
+            requestAnimationFrame(keyboardLoop);
+        }
+        keyboardLoop();
+
+        document.addEventListener('keydown', (e) => {
+            // Ignore if typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const key = e.key.toLowerCase();
+
+            // Movement keys - add to pressed set
+            if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', '=', '+', '-', '_'].includes(key)) {
+                e.preventDefault();
+                keysPressed.add(key);
+                return;
+            }
+
+            // Other shortcuts
+            switch(key) {
+                case 'g':
+                    toggleGlobalPanel();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'r':
+                    resetAll();
+                    break;
+                case 'h':
+                    // Hide all UI for clean viewing
+                    document.body.classList.toggle('hide-ui');
+                    break;
+                case 'p':
+                    // Toggle panorama mode
+                    panoramaToggle.click();
+                    break;
+                case 'l':
+                    // Toggle link views
+                    linkToggle.click();
+                    break;
+                case '1':
+                    togglePanel(0);
+                    break;
+                case '2':
+                    togglePanel(1);
+                    break;
+                case '3':
+                    togglePanel(2);
+                    break;
+                case 'c':
+                    controlsToggle.click();
+                    break;
+                case 'y':
+                    resyncAll();
+                    break;
+                case 'f':
+                    // Toggle performance stats
+                    statsToggle.click();
+                    break;
+                case 'n':
+                    // Toggle all panels day/night at once
+                    document.querySelectorAll('.panel-time-toggle').forEach(btn => btn.click());
+                    break;
+                case '`':
+                case '~':
+                    // Toggle debug log
+                    Logger.toggle();
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed.delete(e.key.toLowerCase());
+        });
+
+        // Clear keys when window loses focus
+        window.addEventListener('blur', () => {
+            keysPressed.clear();
+        });
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            viewers.forEach(v => v.resize());
+        });
+
+        // Start
+        Logger.info('360 Multi-View initializing...');
+        Logger.info(`Loading ${videoUrls.length} videos`);
+        initViewers();
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# 360 Virtual Experience Viewer - Dependencies
+# =============================================
+#
+# The main application (server.py + viewer HTML) uses ONLY Python standard
+# library modules. No pip install is required to run the viewer.
+#
+# System requirement: Python 3.7+
+#
+# ---
+#
+# OPTIONAL: Video conversion tools
+# If you need to convert MP4 videos to HLS format, FFmpeg is required:
+#   Download: https://ffmpeg.org/download.html
+#   Windows:  winget install ffmpeg
+#
+# OPTIONAL: Video stabilization tools
+# Install dependencies with:
+#   pip install -r tools/stabilizer/requirements.txt

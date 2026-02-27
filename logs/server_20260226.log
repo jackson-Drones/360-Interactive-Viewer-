@@ -1,0 +1,21 @@
+2026-02-26 22:49:03 | INFO     | Server started on port 8080
+2026-02-26 22:49:03 | INFO     | Serving directory: E:\360 virtual experience\github_upload
+2026-02-26 22:49:03 | INFO     | Log file: E:\360 virtual experience\github_upload\logs\server_20260226.log
+2026-02-26 22:49:03 | DEBUG    | Request: GET /viewer/multi-view.html
+2026-02-26 22:49:03 | INFO     | 127.0.0.1 - "GET /viewer/multi-view.html HTTP/1.1" 200 -
+2026-02-26 22:49:03 | DEBUG    | Request: GET /videos/hls/flight_line_3/playlist.m3u8
+2026-02-26 22:49:03 | WARNING  | File not found: E:\360 virtual experience\github_upload\videos\hls\flight_line_3\playlist.m3u8
+2026-02-26 22:49:03 | ERROR    | 127.0.0.1 - code 404, message File not found
+2026-02-26 22:49:03 | INFO     | 127.0.0.1 - "GET /videos/hls/flight_line_3/playlist.m3u8 HTTP/1.1" 404 -
+2026-02-26 22:49:04 | DEBUG    | Request: GET /videos/hls/flight_line_2/playlist.m3u8
+2026-02-26 22:49:04 | DEBUG    | Request: GET /videos/hls/flight_line_1/playlist.m3u8
+2026-02-26 22:49:04 | WARNING  | File not found: E:\360 virtual experience\github_upload\videos\hls\flight_line_2\playlist.m3u8
+2026-02-26 22:49:04 | WARNING  | File not found: E:\360 virtual experience\github_upload\videos\hls\flight_line_1\playlist.m3u8
+2026-02-26 22:49:04 | ERROR    | 127.0.0.1 - code 404, message File not found
+2026-02-26 22:49:04 | ERROR    | 127.0.0.1 - code 404, message File not found
+2026-02-26 22:49:04 | INFO     | 127.0.0.1 - "GET /videos/hls/flight_line_2/playlist.m3u8 HTTP/1.1" 404 -
+2026-02-26 22:49:04 | INFO     | 127.0.0.1 - "GET /videos/hls/flight_line_1/playlist.m3u8 HTTP/1.1" 404 -
+2026-02-26 22:49:04 | DEBUG    | Request: GET /favicon.ico
+2026-02-26 22:49:04 | WARNING  | File not found: E:\360 virtual experience\github_upload\favicon.ico
+2026-02-26 22:49:04 | ERROR    | 127.0.0.1 - code 404, message File not found
+2026-02-26 22:49:04 | INFO     | 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
