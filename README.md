@@ -55,7 +55,7 @@ Confirm it shows Python 3.7 or later. No pip packages are required to run the vi
 
 The video files (~35 GB) are too large for GitHub. Download them from Google Drive:
 
-**[Download Video Data from Google Drive](YOUR_GOOGLE_DRIVE_LINK_HERE)**
+**[Download Video Data from Google Drive](https://drive.google.com/drive/folders/1BU7qFn8EcdMsaqcGyBQpMc2ZYZD3-yZa?usp=sharing)**
 
 See [Video Data Setup](#video-data-setup) below for where to place the files.
 
