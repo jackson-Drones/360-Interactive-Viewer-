@@ -1335,9 +1335,9 @@
                     // HLS.js for browsers that don't natively support HLS
                     // Conservative settings for 5 simultaneous streams
                     this.hls = new Hls({
-                        maxBufferLength: 6,            // Buffer 6 seconds ahead (reduced for 5 streams)
-                        maxMaxBufferLength: 12,        // Max 12 seconds buffer
-                        maxBufferSize: 20 * 1000000,   // 20MB max buffer per stream (100MB total for 5)
+                        maxBufferLength: 15,           // Buffer 15 seconds ahead (segments are 10s, ~80-120MB each)
+                        maxMaxBufferLength: 30,        // Max 30 seconds buffer
+                        maxBufferSize: 200 * 1000000,  // 200MB max buffer per stream (segments are ~80-120MB)
                         maxBufferHole: 0.5,            // Allow small gaps
                         startLevel: -1,                // Auto quality selection
                         backBufferLength: 5,           // Keep 5s of back buffer
@@ -1421,9 +1421,9 @@
                     // Load new source
                     if (this.videoUrl.endsWith('.m3u8') && Hls.isSupported()) {
                         this.hls = new Hls({
-                            maxBufferLength: 6,
-                            maxMaxBufferLength: 12,
-                            maxBufferSize: 20 * 1000000,
+                            maxBufferLength: 15,
+                            maxMaxBufferLength: 30,
+                            maxBufferSize: 200 * 1000000,
                             maxBufferHole: 0.5,
                             startLevel: -1,
                             backBufferLength: 5,
