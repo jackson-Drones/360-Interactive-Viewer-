@@ -1934,6 +1934,11 @@
             try {
                 await viewer.switchSource(newUrl);
 
+                // Panel 4: night video faces opposite direction, flip yaw 180°
+                if (panelIndex === 3) {
+                    viewer.lon += 180;
+                }
+
                 // Update bar button appearance
                 const barBtn = document.querySelector(`.bar-daynight[data-panel="${panelIndex}"]`);
                 if (barBtn) {
