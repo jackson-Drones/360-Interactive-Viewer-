@@ -1,0 +1,48 @@
+# ============================================
+# 360 Virtual Experience Viewer - .gitignore
+# ============================================
+
+# ---- Video files (hosted on Google Drive) ----
+# Source MP4 files (~10GB each)
+videos/*.mp4
+
+# HLS streaming segments (~35GB total)
+# Download from Google Drive or generate with tools/convert_to_hls.py
+videos/hls/
+
+# ---- Raw source data ----
+# Insta360 raw footage and preview files
+360 Sample Data/
+
+# ---- Runtime files ----
+logs/
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ---- Claude Code local settings ----
+.claude/
+
+# ---- OS files ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- Editor files ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- Upload staging folders ----
+google_drive_upload/
+github_upload/
+
+# ---- Windows artifacts ----
+nul
