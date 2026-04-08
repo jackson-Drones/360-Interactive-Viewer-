@@ -197,7 +197,6 @@
             font-size: 14px;
             font-weight: 600;
             z-index: 100;
-            display: none;
             backdrop-filter: blur(10px);
             color: #4a90d9;
         }
@@ -212,7 +211,9 @@
             font-size: 12px;
             z-index: 100;
             backdrop-filter: blur(10px);
-            display: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .zoom-btn-small {
@@ -250,7 +251,7 @@
             font-size: 12px;
             z-index: 100;
             backdrop-filter: blur(10px);
-            display: none;
+            display: flex;
             align-items: center;
             gap: 6px;
         }
@@ -295,7 +296,7 @@
             font-size: 12px;
             z-index: 100;
             backdrop-filter: blur(10px);
-            display: none;
+            display: flex;
             align-items: center;
             gap: 6px;
         }
@@ -309,7 +310,7 @@
             border-radius: 6px;
             font-size: 12px;
             z-index: 100;
-            display: none;
+            display: flex;
         }
 
         .yaw-label, .roll-label {
@@ -759,6 +760,11 @@
         </div>
         <div class="viewer-panel" id="panel-2">
             <div class="panel-content">
+                <div class="panel-label">FL1</div>
+                <div class="panel-zoom"><button class="zoom-btn-small zoom-out">-</button><span class="fov-display">111&deg;</span><button class="zoom-btn-small zoom-in">+</button></div>
+                <div class="panel-pitch"><span class="pitch-label">Pitch</span><button class="pitch-btn pitch-down">-</button><span class="pitch-display">0&deg;</span><button class="pitch-btn pitch-up">+</button></div>
+                <div class="panel-yaw"><span class="yaw-label">Yaw</span><button class="yaw-btn yaw-left">-</button><span class="yaw-display">0&deg;</span><button class="yaw-btn yaw-right">+</button></div>
+                <div class="panel-roll"><span class="roll-label">Roll</span><button class="roll-btn roll-left">-</button><span class="roll-display">0&deg;</span><button class="roll-btn roll-right">+</button></div>
                 <div class="panel-view-switcher" data-panel="1"></div>
                 <div class="panel-map" id="panel-map-1"></div>
             </div>
@@ -777,6 +783,11 @@
         </div>
         <div class="viewer-panel" id="panel-3">
             <div class="panel-content">
+                <div class="panel-label">FL2</div>
+                <div class="panel-zoom"><button class="zoom-btn-small zoom-out">-</button><span class="fov-display">114&deg;</span><button class="zoom-btn-small zoom-in">+</button></div>
+                <div class="panel-pitch"><span class="pitch-label">Pitch</span><button class="pitch-btn pitch-down">-</button><span class="pitch-display">0&deg;</span><button class="pitch-btn pitch-up">+</button></div>
+                <div class="panel-yaw"><span class="yaw-label">Yaw</span><button class="yaw-btn yaw-left">-</button><span class="yaw-display">0&deg;</span><button class="yaw-btn yaw-right">+</button></div>
+                <div class="panel-roll"><span class="roll-label">Roll</span><button class="roll-btn roll-left">-</button><span class="roll-display">0&deg;</span><button class="roll-btn roll-right">+</button></div>
                 <div class="panel-view-switcher" data-panel="2"></div>
                 <div class="panel-map" id="panel-map-2"></div>
             </div>
@@ -794,6 +805,11 @@
         </div>
         <div class="viewer-panel" id="panel-4">
             <div class="panel-content">
+                <div class="panel-label">FL3</div>
+                <div class="panel-zoom"><button class="zoom-btn-small zoom-out">-</button><span class="fov-display">117&deg;</span><button class="zoom-btn-small zoom-in">+</button></div>
+                <div class="panel-pitch"><span class="pitch-label">Pitch</span><button class="pitch-btn pitch-down">-</button><span class="pitch-display">0&deg;</span><button class="pitch-btn pitch-up">+</button></div>
+                <div class="panel-yaw"><span class="yaw-label">Yaw</span><button class="yaw-btn yaw-left">-</button><span class="yaw-display">0&deg;</span><button class="yaw-btn yaw-right">+</button></div>
+                <div class="panel-roll"><span class="roll-label">Roll</span><button class="roll-btn roll-left">-</button><span class="roll-display">0&deg;</span><button class="roll-btn roll-right">+</button></div>
                 <div class="panel-view-switcher" data-panel="3"></div>
                 <div class="panel-map" id="panel-map-3"></div>
             </div>
@@ -812,6 +828,11 @@
         </div>
         <div class="viewer-panel" id="panel-5">
             <div class="panel-content">
+                <div class="panel-label">FL3</div>
+                <div class="panel-zoom"><button class="zoom-btn-small zoom-out">-</button><span class="fov-display">56&deg;</span><button class="zoom-btn-small zoom-in">+</button></div>
+                <div class="panel-pitch"><span class="pitch-label">Pitch</span><button class="pitch-btn pitch-down">-</button><span class="pitch-display">0&deg;</span><button class="pitch-btn pitch-up">+</button></div>
+                <div class="panel-yaw"><span class="yaw-label">Yaw</span><button class="yaw-btn yaw-left">-</button><span class="yaw-display">0&deg;</span><button class="yaw-btn yaw-right">+</button></div>
+                <div class="panel-roll"><span class="roll-label">Roll</span><button class="roll-btn roll-left">-</button><span class="roll-display">0&deg;</span><button class="roll-btn roll-right">+</button></div>
             </div>
             <div class="panel-bar" data-panel="4">
                 <span class="bar-label">FL3</span>
@@ -1078,35 +1099,35 @@
                 pitch: 0,
                 yaw: 176,
                 roll: -90,
-                fov: 56
+                fov: 73
             },
             // Panel 2 (Left) - Flight Line 3
             {
                 pitch: -89,
-                yaw: 90,
+                yaw: 87,
                 roll: 0,
-                fov: 111
+                fov: 117
             },
             // Panel 3 (Center) - Flight Line 2
             {
                 pitch: -89,
-                yaw: 90,
+                yaw: 89,
                 roll: 0,
                 fov: 114
             },
             // Panel 4 (Right) - Flight Line 1
             {
                 pitch: -89,
-                yaw: 89,
+                yaw: 90,
                 roll: 0,
-                fov: 117
+                fov: 124
             },
             // Panel 5 (Far Right) - Flight Line 1
             {
-                pitch: -2,
-                yaw: -3,
+                pitch: -4,
+                yaw: 0,
                 roll: 90,
-                fov: 56
+                fov: 114
             }
         ];
 
