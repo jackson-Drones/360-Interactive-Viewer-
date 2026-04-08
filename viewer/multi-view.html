@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360 Multi-View - 3 Panels</title>
+    <title>360 Multi-View - 5 Panels</title>
     <style>
         * {
             margin: 0;
@@ -86,8 +86,70 @@
         .viewer-panel {
             flex: 1;
             position: relative;
+            overflow: hidden;
             border-right: 2px solid #1a1a2e;
             transition: flex 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-content {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-content canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Per-panel bottom control bar */
+        .panel-bar {
+            height: 28px;
+            background: #0a0a15;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 6px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11px;
+            color: #aaa;
+            flex-shrink: 0;
+        }
+
+        .panel-bar .bar-label {
+            color: #4a90d9;
+            font-weight: 600;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .panel-bar .bar-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ccc;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .panel-bar .bar-btn:hover {
+            background: rgba(74, 144, 217, 0.3);
+        }
+
+        .panel-bar .bar-btn.active {
+            background: rgba(74, 144, 217, 0.6);
+            color: #fff;
+        }
+
+        .panel-bar .bar-sep {
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
         }
 
         .viewer-panel.hidden {
@@ -100,14 +162,24 @@
             border-right: none;
         }
 
+        /* Outer panels (1 and 5) are 20% narrower */
+        #panel-1, #panel-5 {
+            flex: 0.8;
+        }
+
+        /* Panel 5 overlaps panel 4 by 15% to align views */
+        #panel-5 {
+            margin-left: -5%;
+            z-index: 1;
+            position: relative;
+        }
+
         /* Panorama mode - seamless panels */
         body.panorama-mode .viewer-panel {
             border-right: none;
         }
 
         .viewer-panel canvas {
-            width: 100% !important;
-            height: 100% !important;
             cursor: grab;
         }
 
@@ -125,6 +197,7 @@
             font-size: 14px;
             font-weight: 600;
             z-index: 100;
+            display: none;
             backdrop-filter: blur(10px);
             color: #4a90d9;
         }
@@ -139,9 +212,7 @@
             font-size: 12px;
             z-index: 100;
             backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            display: none;
         }
 
         .zoom-btn-small {
@@ -179,7 +250,7 @@
             font-size: 12px;
             z-index: 100;
             backdrop-filter: blur(10px);
-            display: flex;
+            display: none;
             align-items: center;
             gap: 6px;
         }
@@ -224,7 +295,7 @@
             font-size: 12px;
             z-index: 100;
             backdrop-filter: blur(10px);
-            display: flex;
+            display: none;
             align-items: center;
             gap: 6px;
         }
@@ -238,10 +309,7 @@
             border-radius: 6px;
             font-size: 12px;
             z-index: 100;
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            display: none;
         }
 
         .yaw-label, .roll-label {
@@ -362,63 +430,16 @@
         }
 
         /* Panel Day/Night toggle button - positioned at bottom center */
-        .panel-time-toggle {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-
-        .panel-time-toggle:hover {
-            transform: translateX(-50%) scale(1.1);
-            border-color: rgba(255, 255, 255, 0.6);
-        }
-
-        .panel-time-toggle.day {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(251, 191, 36, 0.8));
-            border-color: #fbbf24;
-        }
-
-        .panel-time-toggle.day .sun-icon {
-            display: block;
-        }
-
-        .panel-time-toggle.day .moon-icon {
-            display: none;
-        }
-
-        .panel-time-toggle.night {
-            background: linear-gradient(135deg, rgba(30, 58, 95, 0.9), rgba(45, 74, 111, 0.9));
+        /* Day/night bar button styles */
+        .bar-daynight.night {
+            background: rgba(30, 58, 95, 0.9);
             border-color: #60a5fa;
-        }
-
-        .panel-time-toggle.night .sun-icon {
-            display: none;
-        }
-
-        .panel-time-toggle.night .moon-icon {
-            display: block;
             color: #fef3c7;
         }
 
-        .panel-time-toggle.switching {
-            opacity: 0.5;
-            pointer-events: none;
-            animation: pulse 0.5s ease-in-out infinite;
+        .bar-daynight.day {
+            background: rgba(245, 158, 11, 0.5);
+            border-color: #fbbf24;
         }
 
         @keyframes pulse {
@@ -617,6 +638,59 @@
             transition: opacity 0.3s;
         }
 
+        /* Per-panel map view - overlays the 360 canvas */
+        .panel-map {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 5;
+            display: none;
+        }
+
+        .panel-map.visible {
+            display: block !important;
+        }
+
+        .panel-view-switcher {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: none;
+            gap: 0;
+            background: rgba(10, 10, 30, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 3px;
+            backdrop-filter: blur(8px);
+        }
+
+        .panel-view-switcher .view-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 5px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 16px;
+            transition: all 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            white-space: nowrap;
+        }
+
+        .panel-view-switcher .view-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-view-switcher .view-btn.active {
+            background: rgba(74, 144, 217, 0.9);
+            color: #fff;
+        }
+
         #loading-overlay {
             position: fixed;
             top: 0;
@@ -651,94 +725,99 @@
 <body>
     <div id="multi-container">
         <div class="viewer-panel" id="panel-1">
-            <div class="panel-label">Flight Line 3</div>
-            <div class="panel-zoom">
-                <button class="zoom-btn-small zoom-out">-</button>
-                <span class="fov-display">60&deg;</span>
-                <button class="zoom-btn-small zoom-in">+</button>
+            <div class="panel-content">
+                <div class="panel-label">FL1</div>
+                <div class="panel-zoom">
+                    <button class="zoom-btn-small zoom-out">-</button>
+                    <span class="fov-display">56&deg;</span>
+                    <button class="zoom-btn-small zoom-in">+</button>
+                </div>
+                <div class="panel-pitch">
+                    <span class="pitch-label">Pitch</span>
+                    <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
+                    <span class="pitch-display">0&deg;</span>
+                    <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+                </div>
+                <div class="panel-yaw">
+                    <span class="yaw-label">Yaw</span>
+                    <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
+                    <span class="yaw-display">0&deg;</span>
+                    <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
+                </div>
+                <div class="panel-roll">
+                    <span class="roll-label">Roll</span>
+                    <button class="roll-btn roll-left" title="Roll Left">-</button>
+                    <span class="roll-display">0&deg;</span>
+                    <button class="roll-btn roll-right" title="Roll Right">+</button>
+                </div>
             </div>
-            <div class="panel-pitch">
-                <span class="pitch-label">Pitch</span>
-                <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
-                <span class="pitch-display">0&deg;</span>
-                <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+            <div class="panel-bar" data-panel="0">
+                <span class="bar-label">FL1</span>
+                <button class="bar-btn bar-daynight day" data-panel="0" title="Day/Night">&#9728;</button>
+                <button class="bar-btn bar-hide-panel" data-panel="0" title="Hide this panel">Hide</button>
             </div>
-            <div class="panel-yaw">
-                <span class="yaw-label">Yaw</span>
-                <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
-                <span class="yaw-display">0&deg;</span>
-                <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
-            </div>
-            <div class="panel-roll">
-                <span class="roll-label">Roll</span>
-                <button class="roll-btn roll-left" title="Roll Left">-</button>
-                <span class="roll-display">0&deg;</span>
-                <button class="roll-btn roll-right" title="Roll Right">+</button>
-            </div>
-            <button class="panel-time-toggle day" data-panel="0" title="Switch to Night">
-                <span class="sun-icon">&#9728;</span>
-                <span class="moon-icon">&#9790;</span>
-            </button>
         </div>
         <div class="viewer-panel" id="panel-2">
-            <div class="panel-label">Flight Line 2</div>
-            <div class="panel-zoom">
-                <button class="zoom-btn-small zoom-out">-</button>
-                <span class="fov-display">60&deg;</span>
-                <button class="zoom-btn-small zoom-in">+</button>
+            <div class="panel-content">
+                <div class="panel-view-switcher" data-panel="1"></div>
+                <div class="panel-map" id="panel-map-1"></div>
             </div>
-            <div class="panel-pitch">
-                <span class="pitch-label">Pitch</span>
-                <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
-                <span class="pitch-display">0&deg;</span>
-                <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+            <div class="panel-bar" data-panel="1">
+                <button class="bar-btn bar-show-panel" data-show="0" style="display:none" title="Show Panel 1">+ FL1</button>
+                <span class="bar-label">FL1</span>
+                <button class="bar-btn bar-daynight day" data-panel="1" title="Day/Night">&#9728;</button>
+                <span class="bar-sep">|</span>
+                <button class="bar-btn bar-view active" data-panel="1" data-view="footage">360</button>
+                <button class="bar-btn bar-view" data-panel="1" data-view="allmaps-1">Map 1</button>
+                <button class="bar-btn bar-view" data-panel="1" data-view="allmaps-2">Map 2</button>
+                <button class="bar-btn bar-view" data-panel="1" data-view="allmaps-3">Map 3</button>
+                <button class="bar-btn bar-view" data-panel="1" data-view="allmaps-4">Map 4</button>
+                <button class="bar-btn bar-view" data-panel="1" data-view="allmaps-5">Map 5</button>
             </div>
-            <div class="panel-yaw">
-                <span class="yaw-label">Yaw</span>
-                <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
-                <span class="yaw-display">0&deg;</span>
-                <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
-            </div>
-            <div class="panel-roll">
-                <span class="roll-label">Roll</span>
-                <button class="roll-btn roll-left" title="Roll Left">-</button>
-                <span class="roll-display">0&deg;</span>
-                <button class="roll-btn roll-right" title="Roll Right">+</button>
-            </div>
-            <button class="panel-time-toggle day" data-panel="1" title="Switch to Night">
-                <span class="sun-icon">&#9728;</span>
-                <span class="moon-icon">&#9790;</span>
-            </button>
         </div>
         <div class="viewer-panel" id="panel-3">
-            <div class="panel-label">Flight Line 1</div>
-            <div class="panel-zoom">
-                <button class="zoom-btn-small zoom-out">-</button>
-                <span class="fov-display">60&deg;</span>
-                <button class="zoom-btn-small zoom-in">+</button>
+            <div class="panel-content">
+                <div class="panel-view-switcher" data-panel="2"></div>
+                <div class="panel-map" id="panel-map-2"></div>
             </div>
-            <div class="panel-pitch">
-                <span class="pitch-label">Pitch</span>
-                <button class="pitch-btn pitch-down" title="Pitch Down">-</button>
-                <span class="pitch-display">0&deg;</span>
-                <button class="pitch-btn pitch-up" title="Pitch Up">+</button>
+            <div class="panel-bar" data-panel="2">
+                <span class="bar-label">FL2</span>
+                <button class="bar-btn bar-daynight day" data-panel="2" title="Day/Night">&#9728;</button>
+                <span class="bar-sep">|</span>
+                <button class="bar-btn bar-view active" data-panel="2" data-view="footage">360</button>
+                <button class="bar-btn bar-view" data-panel="2" data-view="allmaps-1">Map 1</button>
+                <button class="bar-btn bar-view" data-panel="2" data-view="allmaps-2">Map 2</button>
+                <button class="bar-btn bar-view" data-panel="2" data-view="allmaps-3">Map 3</button>
+                <button class="bar-btn bar-view" data-panel="2" data-view="allmaps-4">Map 4</button>
+                <button class="bar-btn bar-view" data-panel="2" data-view="allmaps-5">Map 5</button>
             </div>
-            <div class="panel-yaw">
-                <span class="yaw-label">Yaw</span>
-                <button class="yaw-btn yaw-left" title="Yaw Left">-</button>
-                <span class="yaw-display">0&deg;</span>
-                <button class="yaw-btn yaw-right" title="Yaw Right">+</button>
+        </div>
+        <div class="viewer-panel" id="panel-4">
+            <div class="panel-content">
+                <div class="panel-view-switcher" data-panel="3"></div>
+                <div class="panel-map" id="panel-map-3"></div>
             </div>
-            <div class="panel-roll">
-                <span class="roll-label">Roll</span>
-                <button class="roll-btn roll-left" title="Roll Left">-</button>
-                <span class="roll-display">0&deg;</span>
-                <button class="roll-btn roll-right" title="Roll Right">+</button>
+            <div class="panel-bar" data-panel="3">
+                <span class="bar-label">FL3</span>
+                <button class="bar-btn bar-daynight day" data-panel="3" title="Day/Night">&#9728;</button>
+                <button class="bar-btn bar-show-panel" data-show="4" style="display:none" title="Show Panel 5">+ FL3</button>
+                <span class="bar-sep">|</span>
+                <button class="bar-btn bar-view active" data-panel="3" data-view="footage">360</button>
+                <button class="bar-btn bar-view" data-panel="3" data-view="allmaps-1">Map 1</button>
+                <button class="bar-btn bar-view" data-panel="3" data-view="allmaps-2">Map 2</button>
+                <button class="bar-btn bar-view" data-panel="3" data-view="allmaps-3">Map 3</button>
+                <button class="bar-btn bar-view" data-panel="3" data-view="allmaps-4">Map 4</button>
+                <button class="bar-btn bar-view" data-panel="3" data-view="allmaps-5">Map 5</button>
             </div>
-            <button class="panel-time-toggle day" data-panel="2" title="Switch to Night">
-                <span class="sun-icon">&#9728;</span>
-                <span class="moon-icon">&#9790;</span>
-            </button>
+        </div>
+        <div class="viewer-panel" id="panel-5">
+            <div class="panel-content">
+            </div>
+            <div class="panel-bar" data-panel="4">
+                <span class="bar-label">FL3</span>
+                <button class="bar-btn bar-daynight day" data-panel="4" title="Day/Night">&#9728;</button>
+                <button class="bar-btn bar-hide-panel" data-panel="4" title="Hide this panel">Hide</button>
+            </div>
         </div>
     </div>
 
@@ -751,12 +830,14 @@
             <div class="control-row">
                 <span class="label">Panels</span>
                 <button class="panel-toggle active" data-panel="0" title="Toggle Flight Line 3 (1)">FL3</button>
-                <button class="panel-toggle active" data-panel="1" title="Toggle Flight Line 2 (2)">FL2</button>
-                <button class="panel-toggle active" data-panel="2" title="Toggle Flight Line 1 (3)">FL1</button>
+                <button class="panel-toggle active" data-panel="1" title="Toggle Flight Line 3 (2)">FL3</button>
+                <button class="panel-toggle active" data-panel="2" title="Toggle Flight Line 2 (3)">FL2</button>
+                <button class="panel-toggle active" data-panel="3" title="Toggle Flight Line 1 (4)">FL1</button>
+                <button class="panel-toggle active" data-panel="4" title="Toggle Flight Line 1 (5)">FL1</button>
             </div>
             <div class="control-row">
                 <span class="label">Aspect</span>
-                <button class="aspect-toggle active" data-aspect="full" title="Full screen">Full</button>
+                <button class="aspect-toggle" data-aspect="full" title="Full screen">Full</button>
                 <button class="aspect-toggle" data-aspect="32-9" title="32:9 Super Ultrawide">32:9</button>
                 <button class="aspect-toggle" data-aspect="21-9" title="21:9 Ultrawide">21:9</button>
                 <button class="aspect-toggle" data-aspect="16-9" title="16:9 Widescreen">16:9</button>
@@ -765,7 +846,7 @@
                 <span class="label">Mid</span>
                 <button class="aspect-toggle" data-aspect="mid-1" title="Mid-range aspect (70% height)">70%</button>
                 <button class="aspect-toggle" data-aspect="mid-2" title="Mid-range aspect (60% height)">60%</button>
-                <button class="aspect-toggle" data-aspect="mid-3" title="Mid-range aspect (50% height)">50%</button>
+                <button class="aspect-toggle active" data-aspect="mid-3" title="Mid-range aspect (50% height)">50%</button>
             </div>
             <div class="control-row">
                 <span class="label">Pano</span>
@@ -788,7 +869,7 @@
             </div>
             <div class="control-row">
                 <span class="label">Pitch Sync</span>
-                <button id="pitch-sync-toggle" class="active" title="Sync pitch across all panels independently">On</button>
+                <button id="pitch-sync-toggle" title="Sync pitch across all panels independently">Off</button>
             </div>
             <div class="control-row">
                 <span class="label">Controls</span>
@@ -810,7 +891,7 @@
                 <button class="global-btn" id="resync-all" title="Resync All Videos (Y)" style="font-size: 10px;">Sync</button>
             </div>
             <div class="keyboard-hint">Drag to look | Scroll to zoom | WASD/Arrows = pan | Q/E = roll | +/- = zoom</div>
-            <div class="keyboard-hint">Space = play | 1/2/3 = panels | N = day/night | C = controls | P = panorama | L = link | H = hide UI | R = reset | F = stats</div>
+            <div class="keyboard-hint">Space = play | 1-5 = panels | M = map | N = day/night | C = controls | P = panorama | L = link | H = hide UI | R = reset | F = stats</div>
         </div>
     </div>
 
@@ -858,6 +939,10 @@
             </div>
         </div>
     </div>
+
+    <!-- MapLibre GL JS for 2D map view -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
 
     <!-- HLS.js for HLS streaming support -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
@@ -962,14 +1047,18 @@
         // ============================================
         const videoSets = {
             day: [
-                '/videos/hls/flight_line_3/playlist.m3u8',   // Panel 1 (Left)
-                '/videos/hls/flight_line_2/playlist.m3u8',   // Panel 2 (Center)
-                '/videos/hls/flight_line_1/playlist.m3u8'    // Panel 3 (Right)
+                '/videos/hls/flight_line_3/playlist.m3u8',   // Panel 1 (Far Left) - FL3
+                '/videos/hls/flight_line_3/playlist.m3u8',   // Panel 2 (Left) - FL3
+                '/videos/hls/flight_line_2/playlist.m3u8',   // Panel 3 (Center) - FL2
+                '/videos/hls/flight_line_1/playlist.m3u8',   // Panel 4 (Right) - FL1
+                '/videos/hls/flight_line_1/playlist.m3u8'    // Panel 5 (Far Right) - FL1
             ],
             night: [
-                '/videos/hls/night_flight_line_1/playlist.m3u8',   // Panel 1 (Left) - Night FL1
-                '/videos/hls/night_flight_line_2/playlist.m3u8',   // Panel 2 (Center) - Night FL2
-                '/videos/hls/night_flight_line_3/playlist.m3u8'    // Panel 3 (Right) - Night FL3
+                '/videos/hls/night_flight_line_3/playlist.m3u8',   // Panel 1 (Far Left) - Night FL3
+                '/videos/hls/night_flight_line_3/playlist.m3u8',   // Panel 2 (Left) - Night FL3
+                '/videos/hls/night_flight_line_2/playlist.m3u8',   // Panel 3 (Center) - Night FL2
+                '/videos/hls/night_flight_line_1/playlist.m3u8',   // Panel 4 (Right) - Night FL1
+                '/videos/hls/night_flight_line_1/playlist.m3u8'    // Panel 5 (Far Right) - Night FL1
             ]
         };
 
@@ -980,37 +1069,44 @@
         let videoUrls = [...videoSets.day];
 
         // ============================================
-        // PANORAMA CONFIGURATION
-        // ============================================
-        const panoramaFov = 60;  // FOV for each panel in panorama mode (60° x 3 = 180° total view)
-        const baseYaw = -945;    // Base yaw direction (your aligned direction)
-
-        // ============================================
         // DEFAULT SETTINGS FOR EACH PANEL
-        // Panorama mode: panels offset by FOV to create seamless wide view
-        // Left panel: -FOV, Center: 0, Right: +FOV
+        // 5 panels with custom camera positions
         // ============================================
         const panelDefaults = [
-            // Panel 1 (Left) - Flight Line 3
+            // Panel 1 (Far Left) - Flight Line 3
             {
                 pitch: 0,
-                yaw: baseYaw - panoramaFov,  // Offset left by FOV
-                roll: 0,
-                fov: panoramaFov
+                yaw: 176,
+                roll: -90,
+                fov: 56
             },
-            // Panel 2 (Center) - Flight Line 2
+            // Panel 2 (Left) - Flight Line 3
             {
-                pitch: 0,
-                yaw: baseYaw,                 // Center reference
+                pitch: -89,
+                yaw: 90,
                 roll: 0,
-                fov: panoramaFov
+                fov: 111
             },
-            // Panel 3 (Right) - Flight Line 1
+            // Panel 3 (Center) - Flight Line 2
             {
-                pitch: 0,
-                yaw: baseYaw + panoramaFov,  // Offset right by FOV
+                pitch: -89,
+                yaw: 90,
                 roll: 0,
-                fov: panoramaFov
+                fov: 114
+            },
+            // Panel 4 (Right) - Flight Line 1
+            {
+                pitch: -89,
+                yaw: 89,
+                roll: 0,
+                fov: 117
+            },
+            // Panel 5 (Far Right) - Flight Line 1
+            {
+                pitch: -2,
+                yaw: -3,
+                roll: 90,
+                fov: 56
             }
         ];
 
@@ -1149,31 +1245,26 @@
                 this.renderer.domElement.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
                 this.renderer.domElement.addEventListener('touchend', () => this.onTouchEnd());
 
-                // Control buttons
+                // Control buttons (optional - may not exist if controls are in bottom bar)
                 const zoomIn = this.container.querySelector('.zoom-in');
                 const zoomOut = this.container.querySelector('.zoom-out');
+                if (zoomIn) setupHoldButton(zoomIn, (speed) => this.updateFov(this.fov - speed));
+                if (zoomOut) setupHoldButton(zoomOut, (speed) => this.updateFov(this.fov + speed));
 
-                // FOV controls - press and hold with acceleration
-                setupHoldButton(zoomIn, (speed) => this.updateFov(this.fov - speed));
-                setupHoldButton(zoomOut, (speed) => this.updateFov(this.fov + speed));
-
-                // Pitch controls - press and hold with acceleration
                 const pitchUp = this.container.querySelector('.pitch-up');
                 const pitchDown = this.container.querySelector('.pitch-down');
-                setupHoldButton(pitchUp, (speed) => this.adjustPitch(-speed));
-                setupHoldButton(pitchDown, (speed) => this.adjustPitch(speed));
+                if (pitchUp) setupHoldButton(pitchUp, (speed) => this.adjustPitch(-speed));
+                if (pitchDown) setupHoldButton(pitchDown, (speed) => this.adjustPitch(speed));
 
-                // Yaw controls - press and hold with acceleration
                 const yawLeft = this.container.querySelector('.yaw-left');
                 const yawRight = this.container.querySelector('.yaw-right');
-                setupHoldButton(yawLeft, (speed) => this.adjustYaw(-speed));
-                setupHoldButton(yawRight, (speed) => this.adjustYaw(speed));
+                if (yawLeft) setupHoldButton(yawLeft, (speed) => this.adjustYaw(-speed));
+                if (yawRight) setupHoldButton(yawRight, (speed) => this.adjustYaw(speed));
 
-                // Roll controls - press and hold with acceleration
                 const rollLeft = this.container.querySelector('.roll-left');
                 const rollRight = this.container.querySelector('.roll-right');
-                setupHoldButton(rollLeft, (speed) => this.adjustRoll(-speed));
-                setupHoldButton(rollRight, (speed) => this.adjustRoll(speed));
+                if (rollLeft) setupHoldButton(rollLeft, (speed) => this.adjustRoll(-speed));
+                if (rollRight) setupHoldButton(rollRight, (speed) => this.adjustRoll(speed));
 
                 this.animate();
             }
@@ -1221,14 +1312,14 @@
             loadVideo() {
                 if (this.videoUrl.endsWith('.m3u8') && Hls.isSupported()) {
                     // HLS.js for browsers that don't natively support HLS
-                    // Conservative settings for 3 simultaneous 4K streams
+                    // Conservative settings for 5 simultaneous streams
                     this.hls = new Hls({
-                        maxBufferLength: 10,           // Buffer 10 seconds ahead (reduced for 3 streams)
-                        maxMaxBufferLength: 20,        // Max 20 seconds buffer
-                        maxBufferSize: 30 * 1000000,   // 30MB max buffer per stream
+                        maxBufferLength: 6,            // Buffer 6 seconds ahead (reduced for 5 streams)
+                        maxMaxBufferLength: 12,        // Max 12 seconds buffer
+                        maxBufferSize: 20 * 1000000,   // 20MB max buffer per stream (100MB total for 5)
                         maxBufferHole: 0.5,            // Allow small gaps
                         startLevel: -1,                // Auto quality selection
-                        backBufferLength: 10,          // Keep 10s of back buffer
+                        backBufferLength: 5,           // Keep 5s of back buffer
                         debug: false
                     });
                     this.hls.loadSource(this.videoUrl);
@@ -1239,16 +1330,33 @@
                     this.hls.on(Hls.Events.ERROR, (event, data) => {
                         if (data.fatal) {
                             Logger.error(`Panel ${this.index + 1}: HLS fatal error`, data.type, data.details);
-                            // Try to recover from fatal errors
                             if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                                Logger.info(`Panel ${this.index + 1}: Attempting recovery...`);
+                                Logger.info(`Panel ${this.index + 1}: Attempting media recovery...`);
                                 this.hls.recoverMediaError();
+                            } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                Logger.info(`Panel ${this.index + 1}: Attempting network recovery...`);
+                                this.hls.startLoad();
                             }
                         }
                         // Don't log non-fatal bufferFullError - it's expected with multiple streams
                         else if (data.details !== 'bufferFullError') {
                             Logger.warn(`Panel ${this.index + 1}: HLS error`, data.type, data.details);
                         }
+                    });
+
+                    // Auto-recover from stalls (video stuck buffering)
+                    let stallCheck = null;
+                    this.video.addEventListener('waiting', () => {
+                        if (stallCheck) clearTimeout(stallCheck);
+                        stallCheck = setTimeout(() => {
+                            if (this.video.paused || this.video.readyState > 2) return;
+                            Logger.warn(`Panel ${this.index + 1}: Stall detected, nudging playback`);
+                            const t = this.video.currentTime;
+                            this.video.currentTime = t + 0.1;
+                        }, 3000);
+                    });
+                    this.video.addEventListener('playing', () => {
+                        if (stallCheck) { clearTimeout(stallCheck); stallCheck = null; }
                     });
                 } else if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
                     // Native HLS support (Safari)
@@ -1292,12 +1400,12 @@
                     // Load new source
                     if (this.videoUrl.endsWith('.m3u8') && Hls.isSupported()) {
                         this.hls = new Hls({
-                            maxBufferLength: 10,
-                            maxMaxBufferLength: 20,
-                            maxBufferSize: 30 * 1000000,
+                            maxBufferLength: 6,
+                            maxMaxBufferLength: 12,
+                            maxBufferSize: 20 * 1000000,
                             maxBufferHole: 0.5,
                             startLevel: -1,
-                            backBufferLength: 10,
+                            backBufferLength: 5,
                             debug: false
                         });
 
@@ -1472,7 +1580,8 @@
                 this.fov = Math.max(this.minFov, Math.min(this.maxFov, newFov));
                 this.camera.fov = this.fov;
                 this.camera.updateProjectionMatrix();
-                this.container.querySelector('.fov-display').textContent = Math.round(this.fov) + '\u00B0';
+                const fovEl = this.container.querySelector('.fov-display');
+                if (fovEl) fovEl.textContent = Math.round(this.fov) + '\u00B0';
             }
 
             adjustPitch(delta) {
@@ -1521,27 +1630,27 @@
             }
 
             updateDisplays() {
-                // Pitch display (positive = down, negative = up)
                 const pitchDisplay = this.container.querySelector('.pitch-display');
-                const pitch = Math.round(this.lat);
-                const pitchSign = pitch >= 0 ? '+' : '';
-                pitchDisplay.textContent = `${pitchSign}${pitch}\u00B0`;
+                if (pitchDisplay) {
+                    const pitch = Math.round(this.lat);
+                    pitchDisplay.textContent = `${pitch >= 0 ? '+' : ''}${pitch}\u00B0`;
+                }
 
-                // Yaw display (normalize to -180 to 180 for display)
                 const yawDisplay = this.container.querySelector('.yaw-display');
-                let yaw = this.lon % 360;
-                if (yaw > 180) yaw -= 360;
-                if (yaw < -180) yaw += 360;
-                const yawSign = yaw >= 0 ? '+' : '';
-                yawDisplay.textContent = `${yawSign}${Math.round(yaw)}\u00B0`;
+                if (yawDisplay) {
+                    let yaw = this.lon % 360;
+                    if (yaw > 180) yaw -= 360;
+                    if (yaw < -180) yaw += 360;
+                    yawDisplay.textContent = `${yaw >= 0 ? '+' : ''}${Math.round(yaw)}\u00B0`;
+                }
 
-                // Roll display
                 const rollDisplay = this.container.querySelector('.roll-display');
-                let roll = this.roll % 360;
-                if (roll > 180) roll -= 360;
-                if (roll < -180) roll += 360;
-                const rollSign = roll >= 0 ? '+' : '';
-                rollDisplay.textContent = `${rollSign}${Math.round(roll)}\u00B0`;
+                if (rollDisplay) {
+                    let roll = this.roll % 360;
+                    if (roll > 180) roll -= 360;
+                    if (roll < -180) roll += 360;
+                    rollDisplay.textContent = `${roll >= 0 ? '+' : ''}${Math.round(roll)}\u00B0`;
+                }
             }
 
             animate() {
@@ -1573,9 +1682,10 @@
         function initViewers() {
             const panels = document.querySelectorAll('.viewer-panel');
 
-            // Create all viewers
+            // Create all viewers - pass .panel-content as container so bars stay visible
             panels.forEach((panel, index) => {
-                const viewer = new Viewer360(panel, videoUrls[index], index, false);
+                const content = panel.querySelector('.panel-content') || panel;
+                const viewer = new Viewer360(content, videoUrls[index], index, false);
                 viewers.push(viewer);
             });
 
@@ -1584,10 +1694,8 @@
             let loadedCount = 0;
             const totalVideos = viewers.length;
 
+            // Stagger stream loading to avoid bandwidth contention with 5 streams
             viewers.forEach((viewer, index) => {
-                // HLS.js handles buffering automatically
-                viewer.loadVideo();
-
                 // Listen for canplay event (video is ready to start)
                 viewer.video.addEventListener('canplay', () => {
                     loadedCount++;
@@ -1607,6 +1715,12 @@
                 viewer.video.addEventListener('error', (e) => {
                     Logger.error(`Panel ${index + 1}: Video error`, viewer.video.error?.message);
                 }, { once: true });
+
+                // Stagger each stream by 200ms to reduce initial bandwidth contention
+                setTimeout(() => {
+                    viewer.loadVideo();
+                    Logger.video(`Panel ${index + 1}: Loading stream (staggered ${index * 200}ms)`);
+                }, index * 200);
             });
 
             // Fallback timeout - start with whatever is ready after 15 seconds
@@ -1690,7 +1804,7 @@
 
         // Aspect ratio toggles
         const aspectToggles = document.querySelectorAll('.aspect-toggle');
-        let currentAspect = 'full';
+        let currentAspect = 'mid-3';
 
         function setAspectRatio(aspect) {
             // Remove all aspect classes
@@ -1751,7 +1865,7 @@
         });
 
         // Pitch sync toggle - sync pitch across panels independently of linkViews
-        let pitchSynced = true;
+        let pitchSynced = false;
         const pitchSyncToggle = document.getElementById('pitch-sync-toggle');
         pitchSyncToggle.addEventListener('click', function() {
             pitchSynced = !pitchSynced;
@@ -1781,46 +1895,40 @@
         // PER-PANEL DAY/NIGHT TOGGLE
         // ============================================
         // Track which time of day each panel is showing
-        const panelTimeState = ['day', 'day', 'day'];
+        const panelTimeState = ['day', 'day', 'day', 'day', 'day'];
 
-        // Set up panel time toggle buttons
-        document.querySelectorAll('.panel-time-toggle').forEach(button => {
-            button.addEventListener('click', async function() {
-                const panelIndex = parseInt(this.dataset.panel);
-                const viewer = viewers[panelIndex];
-                if (!viewer) return;
+        // Toggle day/night for a specific panel
+        const panelSwitching = [false, false, false, false, false];
+        async function togglePanelDayNight(panelIndex) {
+            const viewer = viewers[panelIndex];
+            if (!viewer || panelSwitching[panelIndex]) return;
+            panelSwitching[panelIndex] = true;
 
-                // Prevent double-clicks during switch
-                if (this.classList.contains('switching')) return;
-                this.classList.add('switching');
+            const newTime = panelTimeState[panelIndex] === 'day' ? 'night' : 'day';
+            panelTimeState[panelIndex] = newTime;
+            const newUrl = videoSets[newTime][panelIndex];
 
-                // Toggle time state
-                const newTime = panelTimeState[panelIndex] === 'day' ? 'night' : 'day';
-                panelTimeState[panelIndex] = newTime;
+            Logger.info(`Panel ${panelIndex + 1}: Switching to ${newTime}`);
 
-                // Get new URL
-                const newUrl = videoSets[newTime][panelIndex];
+            try {
+                await viewer.switchSource(newUrl);
 
-                Logger.info(`Panel ${panelIndex + 1}: Switching to ${newTime}`);
-
-                try {
-                    await viewer.switchSource(newUrl);
-
-                    // Update button appearance
-                    this.classList.remove('day', 'night');
-                    this.classList.add(newTime);
-                    this.title = newTime === 'day' ? 'Switch to Night' : 'Switch to Day';
-
-                    Logger.info(`Panel ${panelIndex + 1}: Now showing ${newTime}`);
-                } catch (error) {
-                    Logger.error(`Panel ${panelIndex + 1}: Failed to switch - ${error}`);
-                    // Revert state on error
-                    panelTimeState[panelIndex] = panelTimeState[panelIndex] === 'day' ? 'night' : 'day';
+                // Update bar button appearance
+                const barBtn = document.querySelector(`.bar-daynight[data-panel="${panelIndex}"]`);
+                if (barBtn) {
+                    barBtn.classList.remove('day', 'night');
+                    barBtn.classList.add(newTime);
+                    barBtn.innerHTML = newTime === 'day' ? '&#9728;' : '&#9790;';
                 }
 
-                this.classList.remove('switching');
-            });
-        });
+                Logger.info(`Panel ${panelIndex + 1}: Now showing ${newTime}`);
+            } catch (error) {
+                Logger.error(`Panel ${panelIndex + 1}: Failed to switch - ${error}`);
+                panelTimeState[panelIndex] = panelTimeState[panelIndex] === 'day' ? 'night' : 'day';
+            }
+
+            panelSwitching[panelIndex] = false;
+        }
 
         // Performance stats toggle and tracking
         const statsToggle = document.getElementById('stats-toggle');
@@ -2110,6 +2218,12 @@
                 case '3':
                     togglePanel(2);
                     break;
+                case '4':
+                    togglePanel(3);
+                    break;
+                case '5':
+                    togglePanel(4);
+                    break;
                 case 'c':
                     controlsToggle.click();
                     break;
@@ -2122,8 +2236,9 @@
                     break;
                 case 'n':
                     // Toggle all panels day/night at once
-                    document.querySelectorAll('.panel-time-toggle').forEach(btn => btn.click());
+                    for (let i = 0; i < 5; i++) togglePanelDayNight(i);
                     break;
+                // 'm' handled by view switcher keyboard listener below
                 case '`':
                 case '~':
                     // Toggle debug log
@@ -2146,10 +2261,354 @@
             viewers.forEach(v => v.resize());
         });
 
+        // ============================================
+        // PER-PANEL MAP VIEW - Flight path tracking
+        // ============================================
+
+        // Flight path data from KML LineString files
+        const flightPaths = {
+            1: {
+                start: [-122.5062800674525, 37.73567337597481],
+                end:   [-122.5100310027261, 37.76391161933406],
+                duration: 824.72,
+                color: '#ff4444'
+            },
+            2: {
+                start: [-122.5054390428237, 37.73566064635259],
+                end:   [-122.5075415076335, 37.76394310468820],
+                duration: 826.24,
+                color: '#44ff44'
+            },
+            3: {
+                start: [-122.5040119320183, 37.73573860821951],
+                end:   [-122.5059575815660, 37.76403617319818],
+                duration: 830.20,
+                color: '#4488ff'
+            }
+        };
+
+        // Panel index -> flight line number
+        const panelFlightMap = [3, 3, 2, 1, 1];
+
+        // Per-panel map state
+        const panelMaps = [null, null, null, null, null];
+        const panelMapVisible = [false, false, false, false, false];
+        let mapTrackingFrame = null;
+
+        function getFlightPosition(fl, currentTime, videoDuration) {
+            const path = flightPaths[fl];
+            // Use actual video duration if available, fall back to path duration
+            const duration = videoDuration || path.duration;
+            const t = Math.max(0, Math.min(1, currentTime / duration));
+            const lon = path.start[0] + (path.end[0] - path.start[0]) * t;
+            const lat = path.start[1] + (path.end[1] - path.start[1]) * t;
+            return { lon, lat, t };
+        }
+
+        // Allmaps historical map sources
+        const allmapsSources = {
+            'allmaps-1': 'https://dev.allmaps.xyz/{z}/{x}/{y}@2x.webp?url=https%3A%2F%2Fannotations.allmaps.org%2Fmaps%2F2768e9fd1d41e55c',
+            'allmaps-2': 'https://dev.allmaps.xyz/{z}/{x}/{y}@2x.webp?url=https%3A%2F%2Fannotations.allmaps.org%2Fmaps%2F045cdafd6e043bd1',
+            'allmaps-3': 'https://dev.allmaps.xyz/{z}/{x}/{y}@2x.webp?url=https%3A%2F%2Fannotations.allmaps.org%2Fmaps%2F41c07b2ee3fe0073',
+            'allmaps-4': 'https://dev.allmaps.xyz/{z}/{x}/{y}@2x.webp?url=https%3A%2F%2Fannotations.allmaps.org%2Fmaps%2F3c28b9957511e9ec',
+            'allmaps-5': 'https://dev.allmaps.xyz/{z}/{x}/{y}@2x.webp?url=https%3A%2F%2Fannotations.allmaps.org%2Fmaps%2F5a2dd967f983cd46'
+        };
+
+        function initPanelMap(panelIdx) {
+            if (panelMaps[panelIdx]) return;
+
+            const fl = panelFlightMap[panelIdx];
+            const path = flightPaths[fl];
+            const centerLon = (path.start[0] + path.end[0]) / 2;
+            const centerLat = (path.start[1] + path.end[1]) / 2;
+
+            // Build sources object
+            const sources = {};
+            for (const [id, tileUrl] of Object.entries(allmapsSources)) {
+                sources[id] = {
+                    type: 'raster',
+                    tiles: [tileUrl],
+                    tileSize: 256,
+                    attribution: '&copy; <a href="https://www.allmaps.org/">Allmaps</a>',
+                    maxzoom: 19
+                };
+            }
+
+            // Build layers - first one visible, rest hidden
+            const mapLayerIds = Object.keys(allmapsSources);
+            const layers = mapLayerIds.map((id, i) => ({
+                id,
+                type: 'raster',
+                source: id,
+                layout: { visibility: i === 0 ? 'visible' : 'none' }
+            }));
+
+            const map = new maplibregl.Map({
+                container: `panel-map-${panelIdx}`,
+                style: { version: 8, sources, layers },
+                center: [centerLon, centerLat],
+                zoom: 16.5,
+                minZoom: 12,
+                maxZoom: 19,
+                attributionControl: false,
+                dragPan: true,
+                scrollZoom: true,
+                doubleClickZoom: true,
+                touchZoomRotate: true,
+                dragRotate: true,
+                pitchWithRotate: true,
+                maxPitch: 70,
+                keyboard: false
+            });
+
+            map.on('load', () => {
+                // Flight line path
+                map.addSource('flight-path', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: [path.start, path.end]
+                        }
+                    }
+                });
+
+                map.addLayer({
+                    id: 'flight-path-line',
+                    type: 'line',
+                    source: 'flight-path',
+                    paint: { 'line-color': path.color, 'line-width': 4, 'line-opacity': 0.8 }
+                });
+
+                // Start/end markers
+                for (const [name, coord] of [['start', path.start], ['end', path.end]]) {
+                    map.addSource(`${name}-marker`, {
+                        type: 'geojson',
+                        data: { type: 'Feature', geometry: { type: 'Point', coordinates: coord } }
+                    });
+                    map.addLayer({
+                        id: `${name}-dot`,
+                        type: 'circle',
+                        source: `${name}-marker`,
+                        paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-color': path.color, 'circle-stroke-width': 2 }
+                    });
+                }
+
+                // Tracking dot
+                map.addSource('tracking-dot', {
+                    type: 'geojson',
+                    data: { type: 'Feature', geometry: { type: 'Point', coordinates: path.start } }
+                });
+                map.addLayer({
+                    id: 'tracking-dot',
+                    type: 'circle',
+                    source: 'tracking-dot',
+                    paint: { 'circle-radius': 9, 'circle-color': path.color, 'circle-stroke-color': '#fff', 'circle-stroke-width': 3 }
+                });
+
+                Logger.info(`Panel ${panelIdx + 1}: Map initialized (FL${fl})`);
+            });
+
+            panelMaps[panelIdx] = map;
+        }
+
+        const mapLayerIds = Object.keys(allmapsSources);
+        const viewOptions = [
+            { id: 'footage', label: '360' },
+            { id: 'allmaps-1', label: 'Map 1' },
+            { id: 'allmaps-2', label: 'Map 2' },
+            { id: 'allmaps-3', label: 'Map 3' },
+            { id: 'allmaps-4', label: 'Map 4' },
+            { id: 'allmaps-5', label: 'Map 5' }
+        ];
+
+        // Build view switcher buttons for each panel
+        document.querySelectorAll('.panel-view-switcher').forEach(switcher => {
+            const panelIdx = parseInt(switcher.dataset.panel);
+            viewOptions.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'view-btn' + (i === 0 ? ' active' : '');
+                btn.textContent = opt.label;
+                btn.dataset.view = opt.id;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    switchPanelView(panelIdx, opt.id);
+                    switcher.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+                switcher.appendChild(btn);
+            });
+        });
+
+        function switchPanelView(panelIdx, viewId) {
+            const mapDiv = document.getElementById(`panel-map-${panelIdx}`);
+            if (!mapDiv) return;
+
+            if (viewId === 'footage') {
+                mapDiv.classList.remove('visible');
+                panelMapVisible[panelIdx] = false;
+            } else {
+                panelMapVisible[panelIdx] = true;
+                mapDiv.classList.add('visible');
+                initPanelMap(panelIdx);
+                // Resize after CSS transition completes and container has dimensions
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (panelMaps[panelIdx]) panelMaps[panelIdx].resize();
+                    });
+                });
+
+                // Show selected map layer, hide others
+                const map = panelMaps[panelIdx];
+                if (map) {
+                    mapLayerIds.forEach(id => {
+                        try { map.setLayoutProperty(id, 'visibility', id === viewId ? 'visible' : 'none'); } catch(e) {}
+                    });
+                }
+            }
+
+            if (panelMapVisible.some(v => v)) {
+                startMapTracking();
+            } else {
+                stopMapTracking();
+            }
+        }
+
+        let lastMapUpdate = 0;
+        function updateMapTracking() {
+            const anyVisible = panelMapVisible.some(v => v);
+            if (!anyVisible) {
+                mapTrackingFrame = null;
+                return;
+            }
+
+            const now = performance.now();
+            const shouldPan = now - lastMapUpdate > 500;
+
+            for (let i = 0; i < 5; i++) {
+                if (!panelMapVisible[i] || !panelMaps[i]) continue;
+                const fl = panelFlightMap[i];
+                const viewer = viewers[i];
+                if (!viewer || !viewer.video) continue;
+
+                const pos = getFlightPosition(fl, viewer.video.currentTime, viewer.video.duration);
+                try {
+                    const source = panelMaps[i].getSource('tracking-dot');
+                    if (source) {
+                        source.setData({ type: 'Feature', geometry: { type: 'Point', coordinates: [pos.lon, pos.lat] } });
+                    }
+                    if (shouldPan) {
+                        panelMaps[i].panTo([pos.lon, pos.lat], { duration: 500 });
+                    }
+                } catch(e) {}
+            }
+            if (shouldPan) lastMapUpdate = now;
+            mapTrackingFrame = requestAnimationFrame(updateMapTracking);
+        }
+
+        function startMapTracking() {
+            if (mapTrackingFrame) return;
+            mapTrackingFrame = requestAnimationFrame(updateMapTracking);
+        }
+
+        function stopMapTracking() {
+            if (mapTrackingFrame) { cancelAnimationFrame(mapTrackingFrame); mapTrackingFrame = null; }
+        }
+
+        // Keyboard shortcut: M cycles through views on all panels in sync
+        let globalViewIdx = 0;
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'm' || e.key === 'M') {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                globalViewIdx = (globalViewIdx + 1) % viewOptions.length;
+                document.querySelectorAll('.panel-view-switcher').forEach(switcher => {
+                    const btns = switcher.querySelectorAll('.view-btn');
+                    if (btns[globalViewIdx]) {
+                        btns[globalViewIdx].click();
+                    }
+                });
+            }
+        });
+
         // Start
         Logger.info('360 Multi-View initializing...');
         Logger.info(`Loading ${videoUrls.length} videos`);
+        // Apply default aspect ratio on load
+        document.body.classList.add('aspect-mid-3');
         initViewers();
+
+        // Pre-initialize maps for panels 2, 3, 4 so toggle is instant
+        setTimeout(() => {
+            [1, 2, 3].forEach(idx => initPanelMap(idx));
+            Logger.info('Panel maps pre-initialized');
+        }, 2000);
+
+        // ============================================
+        // PER-PANEL BOTTOM CONTROL BARS
+        // ============================================
+
+        // Day/night buttons in bars
+        document.querySelectorAll('.bar-daynight').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const panelIdx = parseInt(btn.dataset.panel);
+                togglePanelDayNight(panelIdx);
+            });
+        });
+
+        // View switcher buttons in bars (360, Map 1-5)
+        document.querySelectorAll('.bar-view').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const panelIdx = parseInt(btn.dataset.panel);
+                const viewId = btn.dataset.view;
+
+                // Switch the view
+                switchPanelView(panelIdx, viewId);
+
+                // Update active state for this panel's buttons
+                document.querySelectorAll(`.bar-view[data-panel="${panelIdx}"]`).forEach(b => {
+                    b.classList.toggle('active', b.dataset.view === viewId);
+                });
+            });
+        });
+
+        // Hide/show side panel buttons
+        document.querySelectorAll('.bar-hide-panel').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const panelIdx = parseInt(btn.dataset.panel);
+                const panelEl = document.querySelectorAll('.viewer-panel')[panelIdx];
+                panelEl.classList.add('hidden');
+
+                // Update the global panel toggle button
+                const globalBtn = document.querySelector(`.panel-toggle[data-panel="${panelIdx}"]`);
+                if (globalBtn) globalBtn.classList.remove('active');
+
+                // Show the "show" button on the adjacent panel
+                const adjacentIdx = panelIdx === 0 ? 1 : 3;
+                const showBtn = document.querySelector(`.bar-show-panel[data-show="${panelIdx}"]`);
+                if (showBtn) showBtn.style.display = '';
+            });
+        });
+
+        // Show side panel buttons (on adjacent panels)
+        document.querySelectorAll('.bar-show-panel').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const showIdx = parseInt(btn.dataset.show);
+                const panelEl = document.querySelectorAll('.viewer-panel')[showIdx];
+                panelEl.classList.remove('hidden');
+
+                // Update the global panel toggle button
+                const globalBtn = document.querySelector(`.panel-toggle[data-panel="${showIdx}"]`);
+                if (globalBtn) globalBtn.classList.add('active');
+
+                // Hide this show button
+                btn.style.display = 'none';
+            });
+        });
     </script>
 </body>
 </html>
